@@ -173,7 +173,7 @@ e1_buys t = [(t1_buy t 1), (t2_buy t 2)]
 >t2_inv x 0 = error "only two traders present"
 >t2_inv i t = (t2_inv i (t-1)) + (t2_psi (t2_xbids(t-1)) i) + (t2_psi (t2_xbuys(t-1)) i) - (t2_psi (t2_xasks(t-1)) i) - (t2_psi (t2_xsells(t-1)) i)
 
->otype::=Buy|Sell|Bid|Ask
+otype::=Buy|Sell|Bid|Ask
 
 >t2_psi::[(otype, num, num, num)]->num->num
 >t2_psi []               i = 0
@@ -344,8 +344,17 @@ e1_buys t = [(t1_buy t 1), (t2_buy t 2)]
 >e1_bestbid::num->num
 >e1_bestbid t = e1_fstls (e1_bidbook t)
 
+>e1_bidbook::num->[(otype,num,num,num)]
+>e1_bidbook t = e1_fst3 (e1_exchoutput1 t)
+
 >e1_bestask::num->num
 >e1_bestask t = e1_fstls (e1_askbook t)
+
+>e1_askbook::num->[(otype,num,num,num)]
+>e1_askbook t = e1_fst3 (e1_exchoutput2 t)
+
+>e1_fst3::([(otype,num,num,num)],[(otype,num,num,num)],[(otype,num,num,num)])->[(otype,num,num,num)]
+>e1_fst3 (a,b,c) = a
 
 >e1_fstls::[(otype, num, num, num)]->num
 >e1_fstls ((a, b, c, d):r) = c

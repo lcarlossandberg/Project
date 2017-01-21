@@ -11,8 +11,11 @@ where p is the selecter function and xbids is the excuted bids (similar for xask
 at that time step. i is the ID of the Market-maker, t is discrete time inv is intentory.
 
 >inv::num->num->num
->inv i 0 = 0 ||some intial condtion, say 0 inventory at time = 0
->inv i t = (inv (t-1) i) + (psi (xbids(t-1)) i) + (psi (xbuys(t-1)) i) - (psi (xasks(t-1)) i) - (psi (xsells(t-1)) i)
+>inv 0 0 = 0 ||some intial condtion, say 0 inventory at time = 0
+>inv 1 0 = 2000 ||initial inventory for trader 1
+>inv 2 0 = 2000 ||intial inventory for trader 2
+>inv x 0 = error "only two traders present"
+>inv i t = (inv i (t-1)) + (psi (xbids(t-1)) i) + (psi (xbuys(t-1)) i) - (psi (xasks(t-1)) i) - (psi (xsells(t-1)) i)
 
 
 psi() a function that takes a list of orders with each order having four elements the type of order,
@@ -100,40 +103,40 @@ bidsize calculates how big a bid should be
 >bidsize x = 0, if x>=ul
 >          = bidsize_(x), otherwise
 >            where
->            ul = 100
+>            ul = 3000
 
 
 >bidsize_::num->num
 >bidsize_ x = max[0, (ul-1-x)]
 >             where
->             ul = 100
+>             ul = 3000
 
 
 >buysize::num->num
 >buysize x = 0, if x>ll
 >          = -ll, otherwise
 >            where
->            ll = -100
+>            ll = (-3000)
 
 
 >asksize::num->num
 >asksize x = 0, if x<=ll
 >          = asksize_(x), otherwise
 >            where
->            ll = -100
+>            ll = (-3000)
 
 
 >asksize_::num->num
 >asksize_ x = max[0, (x-(ll+1))]
 >             where
->             ll = -100
+>             ll = (-3000)
 
 
 >sellsize::num->num
 >sellsize x = 0, if x<ul
 >           = ul, otherwise
 >             where
->             ul = 100
+>             ul = 3000
 
 
 >bidprice::num->num->num->num
@@ -142,8 +145,8 @@ bidsize calculates how big a bid should be
 >                               midprice = ((bestbid+bestask)/2)
 >                               alpha    = zeta*(1-((ul-1-inv)/(ul-ll-2)))
 >                               zeta     = 6
->                               ul       = 100
->                               ll       = (-100)
+>                               ul       = 3000
+>                               ll       = (-3000)
                                 
 
 >askprice::num->num->num->num
@@ -152,8 +155,8 @@ bidsize calculates how big a bid should be
 >                               midprice = ((bestbid+bestask)/2)
 >                               alpha = zeta*((ul-1-inv)/(ul-ll-2))
 >                               zeta = 6
->                               ul = 100
->                               ll = (-100)
+>                               ul = 3000
+>                               ll = (-3000)
                                               
                                               
                                               
@@ -272,7 +275,8 @@ bidbook/askbook, xbids/xasks and xsells/xbuys are now defined as the returns fro
                                                                           
                                                                           
                                                                           
-                                                                          
+>main = (map (inv 1) [0..4],
+>        map (inv 2) [0..4]) ||what does this do?!?!
                                                                           
                                                                           
                                                                           

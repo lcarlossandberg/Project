@@ -32,7 +32,7 @@ inv_{i,t} = inv_{i,(t-1)} + \psi(i,xbuys_(t-1)) - \psi(i,xsells_(t-1))
 >inv 1 0 = 2000
 >inv 2 0 = 2000
 >inv x 0 = error "only two traders"
->inv i t = (inv i (t-1)) + (psi i (xbuys (t-1))) - (psi i (xsells (t-1))) 
+>inv i t = (inv i (t-1)) + (psi i (xbuys (t-1))) - (psi i (xsells (t-1)))
 >                        + (psi i (xbids (t-1))) - (psi i (xasks (t-1)))
 
  invs i = 2000:[(invs i)!(t-1)+(psi i (xbuys (t-1)))-(psi i (xsells (t-1)))

@@ -1,5 +1,9 @@
 > ||This is literate script
 
+
+
+does not have a fundemtal seller
+
 Here the equations for inventory in thepaper Dynamic
 Coupling and Market Instabilites, will be expressed.
 
@@ -48,6 +52,8 @@ toti is the total number of traders in the simulation
 bid is a tuple type output containing the bid information for a single bid
 
 >bid::num->num->(otype, num, num, num)
+>bid t 0 = order Bid 0 0 0
+>bid 0 i = order Bid (bidsize (inv i 0)) (bidprice (2000-1) (2000+1) (inv i 0)) i
 >bid t i = order Bid (bidsize (inv i t)) (bidprice (bestbid(t-1)) (bestask(t-1)) (inv i t)) i
 
 
@@ -60,6 +66,8 @@ Buys follows a similar logic
 
 
 >buy::num->num->(otype, num, num, num)
+>buy t 0 = order Buy 0                   0  0
+>buy 0 i = order Buy 0                   0  i
 >buy t i = order Buy (buysize (inv i t)) nu i
 >          where
 >          nu = 0
@@ -74,6 +82,9 @@ Aks follows a similar logic
 
 
 >ask::num->num->(otype, num, num, num)
+>ask t 0 = order Ask 0                   0        0
+>ask 0 i = order Ask (asksize (inv i 0)) (2000+1) i
+>ask 1 i = order Ask (asksize (inv i 1)) (2000+1) i
 >ask t i = order Ask (asksize (inv i t)) (askprice (bestbid(t-1)) (bestask(t-1)) (inv i t)) i
 
 
@@ -86,12 +97,14 @@ Sells follows a similar logic
 
 
 >sell::num->num->(otype, num, num, num)
+>sell t 0 = order Sell 0 0 0
+>sell 0 i = order Sell 0 0 i
 >sell t i = order Sell (sellsize (inv i t)) nu i
 >           where
 >           nu = 0
 
 
-Order turns the indervidual inputs into a tuple type object
+Order turns the individual inputs into a tuple type object
 
 >order::otype->num->num->num->(otype, num, num, num)
 >order a b c d = (a, b, c, d)
@@ -163,12 +176,14 @@ bidsize calculates how big a bid should be
 the bestask and bestbid are taken from the front of the bid and ask books
                                               
 >bestbid::num->num
->bestbid t = fstls (bidbook t)
+>bestbid t = fstls (bidbook t), if (bidbook t) ~= []
+>          = (2000-1), otherwise
    
                                               
 >bestask::num->num
->bestask t = fstls (askbook t)
-       
+>bestask t = fstls (askbook t), if (askbook t) ~= []
+>          = (2000+1), otherwise
+
                                               
 fstls returns the price from the order first in the list of the bid/ask book
                                               
@@ -225,7 +240,7 @@ bidbook, xbids and xsells or the askbook, xasks and xbuys
 >                                    (i,j,k) = match q z
                                                                           
                                                                           
-exchoutput is the excahnges out put which is the return of the match function, exchoutput1 for bids and sells
+exchoutput is the exchanges output which is the return of the match function, exchoutput1 for bids and sells
 exchoutput2 for asks and buys
 
 >exchoutput1::num->([(otype,num,num,num)],[(otype,num,num,num)],[(otype,num,num,num)])

@@ -82,6 +82,8 @@ e1_buys t = [(t1_buy t 1), (t2_buy t 2)]
 >t1_thd3 (a,b,c) = c
 
 >t1_sell::num->num->(otype, num, num, num)
+>t1_sell t 0 = t1_order Sell 0 0 0
+>t1_sell 0 i = t1_order Sell 0 0 i
 >t1_sell t i = t1_order Sell (t1_sellsize (t1_inv i t)) nu i
 >              where
 >              nu = 0
@@ -96,6 +98,8 @@ e1_buys t = [(t1_buy t 1), (t2_buy t 2)]
 >                ul = 3000
 
 >t1_bid::num->num->(otype, num, num, num)
+>t1_bid t 0 = t1_order Bid 0 0 0
+>t1_bid 0 i = t1_order Bid (t1_bidsize (t1_inv i t)) (t1_bidprice (2000-1) (2000+1) (t1_inv i 0)) i
 >t1_bid t i = t1_order Bid (t1_bidsize (t1_inv i t)) (t1_bidprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t1_inv i t)) i
 
 >t1_bidsize::num->num
@@ -119,6 +123,9 @@ e1_buys t = [(t1_buy t 1), (t2_buy t 2)]
 >                                  ll       = (-3000)
 
 >t1_ask::num->num->(otype, num, num, num)
+>t1_ask t 0 = t1_order Ask 0 0 0
+>t1_ask 0 i = t1_order Ask (t1_asksize (t1_inv i 0)) (2000+1) i
+>t1_ask 1 i = t1_order Ask (t1_asksize (t1_inv i 1)) (2000+1) i
 >t1_ask t i = t1_order Ask (t1_asksize (t1_inv i t)) (t1_askprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t1_inv i t)) i
 
 >t1_asksize::num->num
@@ -143,6 +150,8 @@ e1_buys t = [(t1_buy t 1), (t2_buy t 2)]
 >                                  ll = (-3000)
 
 >t1_buy::num->num->(otype, num, num, num)
+>t1_buy t 0 = t1_order Buy 0 0 0
+>t1_buy 0 i = t1_order Buy 0 0 i
 >t1_buy t i = t1_order Buy (t1_buysize (t1_inv i t)) nu i
 >             where
 >             nu = 0
@@ -199,6 +208,8 @@ otype::=Buy|Sell|Bid|Ask
 >t2_thd3 (a,b,c) = c
 
 >t2_sell::num->num->(otype, num, num, num)
+>t2_sell t 0 = t2_order Sell 0 0 0
+>t2_sell 0 i = t2_order Sell 0 0 i
 >t2_sell t i = t2_order Sell (t2_sellsize (t2_inv i t)) nu i
 >              where
 >              nu = 0
@@ -213,6 +224,8 @@ otype::=Buy|Sell|Bid|Ask
 >                ul = 3000
 
 >t2_bid::num->num->(otype, num, num, num)
+>t2_bid t 0 = t2_order Bid 0 0 0
+>t2_bid 0 i = t2_order Bid (t2_bidsize (t2_inv i t)) (t2_bidprice (2000-1) (2000+1) (t2_inv i 0)) i
 >t2_bid t i = t2_order Bid (t2_bidsize (t2_inv i t)) (t2_bidprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t2_inv i t)) i
 
 >t2_bidsize::num->num
@@ -236,6 +249,9 @@ otype::=Buy|Sell|Bid|Ask
 >                                  ll       = (-3000)
 
 >t2_ask::num->num->(otype, num, num, num)
+>t2_ask t 0 = t2_order Ask 0 0 0
+>t2_ask 0 i = t2_order Ask (t2_asksize (t1_inv i 0)) (2000+1) i
+>t2_ask 1 i = t2_order Ask (t2_asksize (t1_inv i 1)) (2000+1) i
 >t2_ask t i = t2_order Ask (t2_asksize (t2_inv i t)) (t2_askprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t2_inv i t)) i
 
 >t2_asksize::num->num
@@ -260,6 +276,8 @@ otype::=Buy|Sell|Bid|Ask
 >                                  ll = (-3000)
 
 >t2_buy::num->num->(otype, num, num, num)
+>t2_buy t 0 = t2_order Buy 0 0 0
+>t2_buy 0 i = t2_order Buy 0 0 i
 >t2_buy t i = t2_order Buy (t2_buysize (t2_inv i t)) nu i
 >             where
 >             nu = 0
@@ -342,13 +360,15 @@ otype::=Buy|Sell|Bid|Ask
 >e1_buys t = [(t1_buy t 1), (t2_buy t 2)]
 
 >e1_bestbid::num->num
->e1_bestbid t = e1_fstls (e1_bidbook t)
+>e1_bestbid t = e1_fstls (e1_bidbook t), if (e1_bidbook t) ~= []
+>             = (2000-1), otherwise
 
 >e1_bidbook::num->[(otype,num,num,num)]
 >e1_bidbook t = e1_fst3 (e1_exchoutput1 t)
 
 >e1_bestask::num->num
->e1_bestask t = e1_fstls (e1_askbook t)
+>e1_bestask t = e1_fstls (e1_askbook t), if (e1_askbook t) ~= []
+>             = (2000+1), otherwise
 
 >e1_askbook::num->[(otype,num,num,num)]
 >e1_askbook t = e1_fst3 (e1_exchoutput2 t)

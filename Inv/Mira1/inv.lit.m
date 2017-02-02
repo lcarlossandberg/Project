@@ -97,7 +97,8 @@ Sells follows a similar logic
 
 
 >sell::num->num->(otype, num, num, num)
->sell t 0 = order Sell 0 0 0
+>sell t 0 = order Sell 1000 0 0, if t<10
+>         = order Sell 0 0 0, otherwise
 >sell 0 i = order Sell 0 0 i
 >sell t i = order Sell (sellsize (inv i t)) nu i
 >           where

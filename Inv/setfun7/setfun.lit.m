@@ -1,6 +1,6 @@
 > ||This is literate script
 
-removed tuples replaced with lists
+only use allowed functions :, [], hd, tl
 
 
 
@@ -80,11 +80,14 @@ removed tuples replaced with lists
 >t1_bidsize_ x = max[0, (var_ul-1-x)]
 
 
->t1_bidprice bestbid bestask inv = max[0,((midprice-1)-alpha)]
+>t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha)
 >                                  where
 >                                  midprice = ((bestbid+bestask)/2)
 >                                  alpha    = zeta*(1-((var_ul-1-inv)/(var_ul-var_ll-2)))
 >                                  zeta     = 6
+
+>t1_max x y = x, if x>y
+>           = y, otherwise
 
 
 >t1_ask 0 = t1_order c_Ask (t1_asksize (t1_inv 0)) (var_startprice+1) 1
@@ -97,7 +100,7 @@ removed tuples replaced with lists
 
 >t1_asksize_ x = max[0, (x-(var_ll+1))]
 
->t1_askprice bestbid bestask inv = max[0,((midprice+1)+alpha)]
+>t1_askprice bestbid bestask inv = t1_max 0 ((midprice+1)+alpha)
 >                                  where
 >                                  midprice = ((bestbid+bestask)/2)
 >                                  alpha = zeta*((var_ul-1-inv)/(var_ul-var_ll-2))
@@ -158,10 +161,12 @@ removed tuples replaced with lists
 >             = t2_bidsize_(x), otherwise
 
 
->t2_bidsize_ x = max[0, (var_ul-1-x)]
+>t2_bidsize_ x = t2_max 0 (var_ul-1-x)
 
+>t2_max x y = x, if x>y
+>           = y, otherwise
 
->t2_bidprice bestbid bestask inv = max[0,((midprice-1)-alpha)]
+>t2_bidprice bestbid bestask inv = t2_max 0 ((midprice-1)-alpha)
 >                                  where
 >                                  midprice = ((bestbid+bestask)/2)
 >                                  alpha    = zeta*(1-((var_ul-1-inv)/(var_ul-var_ll-2)))
@@ -178,7 +183,7 @@ removed tuples replaced with lists
 
 >t2_asksize_ x = max[0, (x-(var_ll+1))]
 
->t2_askprice bestbid bestask inv = max[0,((midprice+1)+alpha)]
+>t2_askprice bestbid bestask inv = t2_max 0 ((midprice+1)+alpha)
 >                                  where
 >                                  midprice = ((bestbid+bestask)/2)
 >                                  alpha = zeta*((var_ul-1-inv)/(var_ul-var_ll-2))

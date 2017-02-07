@@ -16,27 +16,6 @@ no i, or excess code
 
 
 
-
->t0_inv 0 = 0
->t0_inv t = (t0_inv (t-1)) + (t0_psi (t0_xbids (t-1))) + (t0_psi (t0_xbuys (t-1))) - (t0_psi (t0_xasks (t-1))) - (t0_psi (t0_xsells (t-1)))
-
-
->t0_psi []               = 0
->t0_psi ((a, b, c, d):r) = b+(t0_psi r), if d=0
->                        = (t0_psi r), otherwise
-
->t0_xbids   t = t0_snd3 (e1_exchoutput1 t)
-
->t0_xbuys   t = t0_thd3 (e1_exchoutput2 t)
-
->t0_xasks   t = t0_snd3 (e1_exchoutput2 t)
-
->t0_xsells  t = t0_thd3 (e1_exchoutput1 t)
-
->t0_snd3 (a,b,c) = b
-
->t0_thd3 (a,b,c) = c
-
 >t0_sell t = t0_order c_Sell 1000 0 0, if t<10
 >          = t0_order c_Sell 0 0 0, otherwise
 

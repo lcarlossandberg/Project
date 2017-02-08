@@ -10,20 +10,9 @@ This files contents are then saved in the type format to be proccessed into Inte
 
 
 
-
+Here are the first couple of lines of the sugested input file, just for quick testing of the code
 
 >tester = "c_Buy = 0 c_Sell = 1 c_Bid = 2 c_Ask = 3 t0_sell t = t0_order c_Sell 1000 0 0, if t<var_selltime = t0_order c_Sell 0 0 0, otherwise t0_order a b c d = [a, b, c, d] t0_bid t = t0_order c_Bid 0 0 0 t0_ask t = t0_order c_Ask 0 0 0 t0_buy t = t0_order c_Buy 0 0 0"
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -32,15 +21,17 @@ This files contents are then saved in the type format to be proccessed into Inte
 Lexer
 Reads in the file and converts it to tokens
 
+The lexeme contains all the tokens that will be used
 
-lexeme::= Bra|Ket|Fun|Dot|Var [char]|Numb num|Plus|Minus|Divide|Mult|Letrec|In|Def [char]|Equ|Lend
-
->lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conif|Conotherwise|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr
+>lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conif|Conotherwise|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ
 
 >lex::[char]->[lexeme]
 >lex []             = []
+>lex ('>':'=':xs)   = Opgreaterequ:(lex xs)
+>lex ('<':'=':xs)   = Oplessequ:(lex xs)
 >lex ('>':xs)       = Opgreater:(lex xs)
 >lex ('<':xs)       = Opless:(lex xs)
+>lex ('~':'=':xs)   = Opnotequal:(lex xs)
 >lex ('=':xs)       = Opequal:(lex xs)
 >lex ('[':xs)       = LBra:(lex xs)
 >lex (']':xs)       = LKet:(lex xs)
@@ -118,20 +109,84 @@ lexeme::= Bra|Ket|Fun|Dot|Var [char]|Numb num|Plus|Minus|Divide|Mult|Letrec|In|D
 
 
 
+Parse tree
+The parse tree is componsed of type strutures that will be used to store the read in file
+
+program is the parent type containing trees for the entire read in file
+
+>program::= Program types code experiment
+
+types contains all of the user type definations for the program
+it can look something like (Types deftype Emptytypes) for a single type
+
+>types::= Emptytypes|Types deftype types
+
+deftype contains the name of the type and then an expression of what the type equals (normally a number)
+
+>deftype::= Type [char] expression
+
+code contains the body of the file, with each function stored here
+
+>code::= Emptycode|Functions deffunction code
+
+deffunction contains the name of the function its inputs and its function body
+
+>deffunction::= Function [char] arguments bodyfunction
+
+>arguments::= Emptyarguments|Argument arg arguments
+
+>arg::= Arg [char]
+
+bodyfunction stores the expression for each line of a function
+
+>bodyfunction::= Emptyline|Line expression bodyfunction
+
+The experment its self will contain initial values to use as well an expression for the experment
+
+>experiment::= Experiment intialvalues expression
+
+>intialvalues::= Emptyvalue|Intialvalue defvalue intialvalues
+
+>defvalue::= Defvalue [char] num
+
+expression is the meat of the tree allowing the code to expressed
+it expresses each single element in the line in a kinda list
+where an element is a singler expressible statement for instance
+something contained within brackets
+
+>expression::= Emptyexpression|Expression element expression
+
+>element::= Emptyelement
+>           |Brackets expression
+>           |List expression ||for []
+>           |Operaction expression op expression
+>           |Functioncall [char] callinputs ||any function 
+>           |Intvariable [char]
+>           |Exvariable [char]
+>           |Where
+>           |Specialfunc specfunc callinputs
+>           |Otherwise
+>           |Number num
+>           |Comma
+>           |If
+
+>op::= Pluss
+>      |Minus
+>      |Multiply
+>      |Divide
+>      |Lessthan
+>      |Greaterthan
+>      |Equals
+>      |Notequals
+>      |Lessequ
+>      |Greaterequ
 
 
+>callinputs::= Emptycall|Callinputs element callinputs
+
+>specfunc::= Listhead|Listtail|Listadd
 
 
-
-
-
-
-
-
-
-||This is the parse tree
-
-prog   ::= Prog defs expr ||as LETREC defs IN exp, holds the over all structure
 
 defs   ::= Emptydefs|Defse fundef|Defs fundef defs ||Holds the function structure, Defse is needed as an end case to stop Emptydefs being used
 || Chris comment - you may still need Emptydefs if you really don't have any definitions at all

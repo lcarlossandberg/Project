@@ -15,7 +15,7 @@
 
 testvalue = "{_name1 x y = (1) + (a), _name2 q = j,} (name1)+(name2)"
 testvalue2 = "{_name1 x y = (12) + (a), _name2 q = j,} (name1)+(name2)"
-testv = "{_name x y = z,} (x)+(z)"
+testv = "{_name x y = z,} (x)+(z)5"
 
 
 
@@ -77,6 +77,9 @@ arg    ::= Arg [char]
 
 || Chris comment - presumably the lexeme (Var x) must be changed into (Arg x) if it appears before an Equ ??
 
+    
+    
+    
 expr   ::= Variable [char]
            |Opexpr expr op expr
            |App expr expr

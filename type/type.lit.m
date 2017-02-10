@@ -114,7 +114,7 @@ The parse tree is componsed of type strutures that will be used to store the rea
 
 program is the parent type containing trees for the entire read in file
 
->program::= Program types code experiment
+>program::= Program types agents experiment
 
 types contains all of the user type definations for the program
 it can look something like (Types deftype Emptytypes) for a single type
@@ -125,9 +125,14 @@ deftype contains the name of the type and then an expression of what the type eq
 
 >deftype::= Type [char] expression
 
-code contains the body of the file, with each function stored here
+agents contains the body of the file, with each function stored here
+each agent contains its global name,such as t1, and all associated fucntions
 
->code::= Emptycode|Functions deffunction code
+>agents::= Emptyagents|Agents agent agents
+
+>agent::= Agent [char] functions
+
+>functions::= Emptyfunctions|Functions deffunction functions
 
 deffunction contains the name of the function its inputs and its function body
 
@@ -160,7 +165,7 @@ something contained within brackets
 >           |Brackets expression
 >           |List expression ||for []
 >           |Operaction expression op expression
->           |Functioncall [char] callinputs ||any function 
+>           |Functioncall [char] callinputs ||any function
 >           |Intvariable [char]
 >           |Exvariable [char]
 >           |Where
@@ -188,32 +193,28 @@ something contained within brackets
 
 
 
-defs   ::= Emptydefs|Defse fundef|Defs fundef defs ||Holds the function structure, Defse is needed as an end case to stop Emptydefs being used
-|| Chris comment - you may still need Emptydefs if you really don't have any definitions at all
-|| Chris comment - Defse isn't strictly necessary - it's a design option.  A single def could have the value (Defs fundef Emptdefs)
-
-fundef ::= Fundef [char] args expr ||Holds the actual function
-|| Chris comment - presumably [char] gives the name of the function?
-|| Chris comment - presumably the Equ lexeme is no longer needed?
-args   ::= Emptyargs|Argse arg|Args arg args ||Argse is used as an end case
-arg    ::= Arg [char]
-
-|| Chris comment - presumably the lexeme (Var x) must be changed into (Arg x) if it appears before an Equ ??
-
-expr   ::= Variable [char]
-|Opexpr expr op expr
-|App expr expr
-|Brackets expr
-|Numcon num
-
-|| Chris comment - it won't be long before you will need non-numeric constants (eg booleans) and associated operators
-
-op     ::= Pluss|Mults|Minuss|Divides
 
 
 
 
-||This is the parser
+
+
+
+
+
+
+
+
+Parser
+This turns the tokens into the parse tree type
+
+>parser x = Program (p_types a) (p_agents b) (p_experiment c)
+>           where
+>           (a, b, c) = program_splitter x
+
+
+
+
 
 parser::[lexeme]->prog
 parser (Letrec:xs) = Prog (p_defs a) (p_expr b)    ||splits the program into letrec and in
@@ -281,6 +282,21 @@ f_decider (Minus:xs)  a = Opexpr (p_expr a) Minuss (p_expr xs)
 f_decider (Divide:xs) a = Opexpr (p_expr a) Divides (p_expr xs)
 f_decider (Mult:xs)   a = Opexpr (p_expr a) Mults (p_expr xs)
 f_decider any         a = Brackets (p_expr a) ||if anything else follows it has to just be a singler bracketed expression
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,16 +1,42 @@
-c_Buy = 0
-c_Sell = 1
-c_Bid = 2
-c_Ask = 3
 
 
+then = True
+else = False
+myif t a x b y = x, if t
+               = y, otherwise
 
 
+EXPERIMENT
+{
+    var_selltime = 10
+    var_t1startinv = 2000
+    
+    
+    
+}
+
+main = expr
+       where
+       n = 0   || experiment number
+       var_selltime e = 10
+       var_t1startinv e = 2000
+       var_t2startinv e = 2000
+       var_nu e = 0
+       var_ul = 3000
+       var_ll = (-3000)
+       var_startprice = 2000
+       args any = error "unknown arg"
+       c_Buy = 0
+       c_Sell = 1
+       c_Bid = 2
+       c_Ask = 3
+       expr = [map t1_inv [0..3], map t2_inv [0..3] ]
 
 
+       t0_sell t = myif (t<(var_selltime n))
+                   then (t0_order c_Sell 1000 0 0)
+                   else (t0_order c_Sell 0 0 0)
 
-t0_sell t = t0_order c_Sell 1000 0 0, if t<var_selltime
-          = t0_order c_Sell 0 0 0, otherwise
 
 t0_order a b c d = [a, b, c, d]
 
@@ -305,18 +331,6 @@ e1_fstls x = e1_thd (hd x)
 
 
 
-
-
-var_selltime = 10
-var_t1startinv = 2000
-var_t2startinv = 2000
-var_nu = 0
-var_ul = 3000
-var_ll = (-3000)
-var_startprice = 2000
-
-
-Expr = (map t1_inv [0..3], map t2_inv [0..3] )
 
 
 

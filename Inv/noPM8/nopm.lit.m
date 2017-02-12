@@ -2,8 +2,6 @@
 
 get rid of pattern matching only use conditions
 
-t1_order a b c d = [a, b, c, d] ||help
-
 
 
 

@@ -211,9 +211,41 @@ this should be able to represent any function
 Parser
 This turns the tokens into the parse tree type
 
-parser x = Program (p_types a) (p_agents b) (p_experiment c)
-           where
-           (a, b, c) = program_splitter x
+>parser x = Program (p_types a) (p_agents b) (p_experiment c)
+>           where
+>           a = find_types1 x
+>           b = find_code1 x
+
+||find_types isolates the code defining global types "var_" and retuns this
+
+>find_types1 []             = []
+>find_types1 ((Idvar a):xs) = find_types2 ((Idvar a):xs) []
+>find_types1 (x:xs)         = find_types1 xs
+
+>find_types2 []           b = b ||if var is put at end of file
+>find_types2 (Expr:xs)    b = b ||if var is put before the main
+>find_types2 (Idexrun:xs) b = b ||if var is put before run_main
+>find_types2 (x:xs)       b = find_types xs (b++[x])
+
+
+||find_code isolates the main body of the code and returns this
+
+>find_code1 []        = []
+>find_code1 (Expr:xs) = find_code2 xs
+>find_code1 (x:xs)    = find_code1 xs
+
+>find_code2 []            = []
+>find_code2 (Conwhere:xs) = find_code3 xs
+>find_code2 (x:xs)        = find_code2 xs
+
+>find_code3 []                = []
+>find_code3 ((Idfunc a b):xs) = find_code4 ((Idfunc a b):xs) []
+>find_code3 (x:xs)            = find_code3 xs
+
+>find_code4 []             b = b
+>find_code4 (x:xs)         b = find_code4 xs (b++[x])
+
+
 
 
 

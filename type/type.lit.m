@@ -23,7 +23,7 @@ Reads in the file and converts it to tokens
 
 The lexeme contains all the tokens that will be used
 
->lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conif|Conotherwise|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ
+>lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conif|Conotherwise|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif
 
 >lex::[char]->[lexeme]
 >lex []             = []
@@ -50,9 +50,13 @@ The lexeme contains all the tokens that will be used
 >                   = Funhead:(lex b), if a=['h','d']
 >                   = Funtail:(lex b), if a=['t','l']
 >                   = Conwhere:(lex b), if a=['w','h','e','r','e']
->                   = Expr:(lex b), if a=['E','x','p','r']
+>                   = Expr:(lex b), if a=['m', 'a', 'i', 'n']
+>                   = Stateif:(lex b), if a=['m','y','i','f']
+>                   = (lex b), if a=['t','h','e','n']
+>                   = (lex b), if a=['e','l','s','e']
 >                   = (Idtype a):(lex b), if (istype a)
 >                   = (Idvar a):(lex b), if (isvar a)
+>                   = (Idexrun):(lex b), if (isrun a)
 >                   = (returnfunc a []):(lex b), if (isfunc a)
 >                   = (Idintvar a):(lex b), otherwise
 >                     where
@@ -82,6 +86,8 @@ The lexeme contains all the tokens that will be used
 >istype x = beforescore x [] = ['c']
 
 >isvar x = beforescore x [] = ['v','a','r']
+
+>isrun x = beforescore x [] = ['r', 'u', 'n']
 
 >isfunc [] = False
 >isfunc ('_':xs) = True
@@ -114,66 +120,66 @@ The parse tree is componsed of type strutures that will be used to store the rea
 
 program is the parent type containing trees for the entire read in file
 
->program::= Program types agents experiment
+>program::= Program types functions experiment
 
 types contains all of the user type definations for the program
 it can look something like (Types deftype Emptytypes) for a single type
 
 >types::= Emptytypes|Types deftype types
 
-deftype contains the name of the type and then an expression of what the type equals (normally a number)
+deftype contains the name of the type, the arguments and then an expression of what the type equals (normally a number)
 
->deftype::= Type [char] expression
+>deftype::= Type [char] arguments expression
 
-agents contains the body of the file, with each function stored here
-each agent contains its global name,such as t1, and all associated fucntions
+here the arguments are the arguments to a fucntion call
 
->agents::= Emptyagents|Agents agent agents
+>arguments::= Emptyargs|Args arg arguments
 
->agent::= Agent [char] functions
+>arg::= Arg expression
 
->functions::= Emptyfunctions|Functions deffunction functions
+the fucntion body used to expression all the functions
+functions lists all the fucntions
+function has the name of the function its code and its where statemnts
 
-deffunction contains the name of the function its inputs and its function body
+>functions::= Emptyfunctions|Functions function functions
 
->deffunction::= Function [char] arguments bodyfunction
+>function::= Function [char] arguments expression whereblock
 
->arguments::= Emptyarguments|Argument arg arguments
+>whereblock::= Emptywhere|Whereblock expression whereblock
 
->arg::= Arg [char]
+the experiment contains the globalvariables which are Variables that
+can be changed for differnt runs of the experiment. then it has
+the experiment code, detailing the function main and the code
+used for the experiment. Then it has the experiment call meaning the
+final experiment numbers to run
 
-bodyfunction stores the expression for each line of a function
+>experiment::= Experiment globalvariables experimentbody experimentrun
 
->bodyfunction::= Emptyline|Line expression bodyfunction
+>globalvariables::= Emptygvar|Globalvariables defgvar globalvariables
 
-The experment its self will contain initial values to use as well an expression for the experment
+>defgvar::= Defgvar [char] arguments expression
 
->experiment::= Experiment intialvalues expression
+>experimentbody::= Emptebody|Expbody expression
 
->intialvalues::= Emptyvalue|Intialvalue defvalue intialvalues
+>experimentrun::= Empterun|Exprun expression
 
->defvalue::= Defvalue [char] num
 
-expression is the meat of the tree allowing the code to expressed
-it expresses each single element in the line in a kinda list
-where an element is a singler expressible statement for instance
-something contained within brackets
+expression defines the occurance of actual code in a recurance format
+this should be able to represent any function
 
->expression::= Emptyexpression|Expression element expression
+>expression::= Emptyexpression
+>              |Ifelse expression expression expression ||this is the if statement taking: if condition, true code, else code
+>              |Brackets expression
+>              |List arguments ||for []
+>              |Operaction expression op expression
+>              |Funint [char] arguments ||internally defined functions
+>              |Funext [char] arguments ||externally defined functions
+>              |Varint [char]
+>              |Varex [char]
+>              |Specialfunc specfunc expression
+>              |Number num
 
->element::= Emptyelement
->           |Brackets expression
->           |List expression ||for []
->           |Operaction expression op expression
->           |Functioncall [char] callinputs ||any function
->           |Intvariable [char]
->           |Exvariable [char]
->           |Where
->           |Specialfunc specfunc callinputs
->           |Otherwise
->           |Number num
->           |Comma
->           |If
+>internarg::= Emptyinarg|Internarg expression internarg
 
 >op::= Pluss
 >      |Minus
@@ -185,9 +191,6 @@ something contained within brackets
 >      |Notequals
 >      |Lessequ
 >      |Greaterequ
-
-
->callinputs::= Emptycall|Callinputs element callinputs
 
 >specfunc::= Listhead|Listtail|Listadd
 
@@ -208,9 +211,9 @@ something contained within brackets
 Parser
 This turns the tokens into the parse tree type
 
->parser x = Program (p_types a) (p_agents b) (p_experiment c)
->           where
->           (a, b, c) = program_splitter x
+parser x = Program (p_types a) (p_agents b) (p_experiment c)
+           where
+           (a, b, c) = program_splitter x
 
 
 

@@ -1,3 +1,7 @@
+run_main = [main 0, main 1]
+
+
+
 var_selltime e = 10
 var_t1startinv e = 2000
 var_t2startinv e = 2000
@@ -104,7 +108,7 @@ t1_asksize x = myif (x <= (var_ll exp_n)) then (0)
                else
                (t1_asksize_(x))
 
-t1_asksize_ x = max[0, (x-((var_ll exp_n)+1))]
+t1_asksize_ x = t1_max 0 (x-((var_ll exp_n)+1))
 
 t1_askprice bestbid bestask inv = t1_max 0 ((midprice+1)+alpha)
                                   where
@@ -186,7 +190,7 @@ t2_asksize x = myif (x <= (var_ll exp_n)) then (0)
                else
                (t2_asksize_(x))
 
-t2_asksize_ x = max[0, (x-((var_ll exp_n)+1))]
+t2_asksize_ x = t2_max 0 (x-((var_ll exp_n)+1))
 
 t2_askprice bestbid bestask inv = t2_max 0 ((midprice+1)+alpha)
                                   where

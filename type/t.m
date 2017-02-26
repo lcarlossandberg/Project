@@ -96,6 +96,7 @@ returnfunc (x:xs)   a = returnfunc xs (a++[x])
 
 
 
+tester
 
 
 
@@ -105,6 +106,19 @@ returnfunc (x:xs)   a = returnfunc xs (a++[x])
 
 
 
+find_exprr1 []           = []
+find_exprr1 (Idexrun:xs) = find_exprr2 xs []
+find_exprr1 (x:xs)       = find_exprr1 xs
+
+find_exprr2 []             b = b
+find_exprr2 ((Idvar a):xs) b = b
+find_exprr2 ((Expr):xs)    b = b, if (find_exprr3 xs)
+                             = find_exprr2 xs (b++[Expr]), otherwise
+find_exprr2 (x:xs)         b = find_exprr2 xs (b++[x])
+
+find_exprr3 []        = True
+find_exprr3 (Expr:xs) = False
+find_exprr3 (x:xs)    = find_exprr3 xs
 
 
 find_code1 []                              = []

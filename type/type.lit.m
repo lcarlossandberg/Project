@@ -193,10 +193,12 @@ Parser
 This turns the tokens into the parse tree type
 
 
->parser x = Program (p_definations a) (p_exeremint b)
+>parser x = Program (p_definations a) (p_exeremint b c d)
 >           where
 >           a = find_code1 x
->           b = find_expr1 x
+>           b = find_evar1 x
+>           c = find_exprb1 x
+>           d = find_exprr1 x
 
 find_code takes the input lexemes and returns just the body of the definations, the code inside the
 experements where block.
@@ -217,12 +219,46 @@ find_code1 finds where the body of the code starts and passes this to find_code2
 >find_code3 (WKet:xs) b = (xs, (b++[WKet]))
 >find_code3 (x:xs)    b = find_code3 xs (b++[x])
 
+find_evar returns a list of the global varibals Var_
 
+>find_evar1 []             = []
+>find_evar1 ((Idvar a):xs) = find_evar2 ((Idvar a):xs) []
+>find_evar1 (x:xs)         = find_evar1 xs
 
+>find_evar2 []           b = b
+>find_evar2 (Expr:xs)    b = b
+>find_evar2 (Idexrun:xs) b = b
+>find_evar2 (x:xs) b = find_evar2 xs (b++[x])
 
+find_exprb returns the body of what the expemetn is main ..
 
+>find_exprb1 []        = []
+>find_exprb1 (Expr:xs) = find_exprb3 (find_exprb2 xs []) []
+>find_exprb1 (x:xs)    = find_exprb1 xs
 
+>find_exprb2 []        b = b
+>find_exprb2 (Expr:xs) b = find_exprb2 xs []
+>find_exprb2 (x:xs)    b = find_exprb2 xs (b++[x])
 
+>find_exprb3 []            b = b
+>find_exprb3 (Conwhere:xs) b = b
+>find_exprb3 (x:xs)        b = find_exprb3 xs (b++[x])
+
+returns the expemrent run expression run_main
+
+>find_exprr1 []           = []
+>find_exprr1 (Idexrun:xs) = find_exprr2 xs []
+>find_exprr1 (x:xs)       = find_exprr1 xs
+
+>find_exprr2 []             b = b
+>find_exprr2 ((Idvar a):xs) b = b
+>find_exprr2 ((Expr):xs)    b = b, if (find_exprr3 xs)
+>                             = find_exprr2 xs (b++[Expr]), otherwise
+>find_exprr2 (x:xs)         b = find_exprr2 xs (b++[x])
+
+>find_exprr3 []        = True
+>find_exprr3 (Expr:xs) = False
+>find_exprr3 (x:xs)    = find_exprr3 xs
 
 
 

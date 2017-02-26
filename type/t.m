@@ -4,11 +4,18 @@ t = "run_main = [main 0, main 1] var_selltime e = 10 var_t1startinv e = 2000 var
 
 
 
+t2 = "{ y_x1 { x2 { x3 } x4 }"
+
+t3 = "a b c where { c_buy = 1 { y_x1 { x2 { x3 } x4 } }"
+
+test = lex t
 
 
 
 
-lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conif|Conotherwise|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif
+
+
+lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif|Idcomment [char]|WBra|WKet
 
 lex::[char]->[lexeme]
 lex []             = []
@@ -18,8 +25,11 @@ lex ('>':xs)       = Opgreater:(lex xs)
 lex ('<':xs)       = Opless:(lex xs)
 lex ('~':'=':xs)   = Opnotequal:(lex xs)
 lex ('=':xs)       = Opequal:(lex xs)
+lex ('|':'|':xs)   = (Idcomment (takewhile (~= '\n') xs)) : (lex (tl (dropwhile (~= '\n') xs)))
 lex ('[':xs)       = LBra:(lex xs)
 lex (']':xs)       = LKet:(lex xs)
+lex ('{':xs)       = WBra:(lex xs)
+lex ('}':xs)       = WKet:(lex xs)
 lex ('(':xs)       = Bra:(lex xs)
 lex (')':xs)       = Ket:(lex xs)
 lex ('+':xs)       = Opplus:(lex xs)
@@ -30,8 +40,6 @@ lex (' ':xs)       = lex xs
 lex (':':xs)       = Opcons:(lex xs)
 lex (',':xs)       = Concomma:(lex xs)
 lex (x:xs)         = (Idnum (numval a)): (lex b), if (isnumber a)
-                   = Conif:(lex b), if a=['i','f']
-                   = Conotherwise:(lex b), if a=['o','t','h','e','r','w','i','s','e']
                    = Funhead:(lex b), if a=['h','d']
                    = Funtail:(lex b), if a=['t','l']
                    = Conwhere:(lex b), if a=['w','h','e','r','e']
@@ -98,47 +106,22 @@ returnfunc (x:xs)   a = returnfunc xs (a++[x])
 
 
 
-find_types1 []             = []
-find_types1 ((Idvar a):xs) = find_types2 ((Idvar a):xs) []
-find_types1 (x:xs)         = find_types1 xs
 
-find_types2 []           b = b ||if var is put at end of file
-find_types2 (Expr:xs)    b = b ||if var is put before the main
-find_types2 (Idexrun:xs) b = b ||if var is put before run_main
-find_types2 (x:xs)       b = find_types2 xs (b++[x])
+find_code1 []                              = []
+find_code1 (Conwhere:WBra:(Idfunc a b):xs) = find_code2 ((Idfunc a b):xs) []
+find_code1 (Conwhere:WBra:(Idtype a):xs)   = find_code2 ((Idtype a):xs) []
+find_code1 (x:xs)                          = find_code1 xs
 
-
-
-
-
+find_code2 (WBra:xs) b = find_code2 x y
+                         where
+                         (x, y) = find_code3 (xs) (b++[WBra])
+find_code2 (WKet:xs) b = b
+find_code2 (x:xs)    b = find_code2 xs (b++[x])
 
 
-
-
-
-find_code1 []        = []
-find_code1 (Expr:xs) = find_code2 xs
-find_code1 (x:xs)    = find_code1 xs
-
-find_code2 []            = []
-find_code2 (Conwhere:xs) = find_code3 xs
-find_code2 (x:xs)        = find_code2 xs
-
-find_code3 []                = []
-find_code3 ((Idfunc a b):xs) = find_code4 ((Idfunc a b):xs) []
-find_code3 (x:xs)            = find_code3 xs
-
-find_code4 []             b = b
-find_code4 (x:xs)         b = find_code4 xs (b++[x])
-
-
-
-
-
-
-
-
-
+find_code3 (WBra:xs) b = find_code3 xs (b++[WBra])
+find_code3 (WKet:xs) b = (xs, (b++[WKet]))
+find_code3 (x:xs)    b = find_code3 xs (b++[x])
 
 
 

@@ -15,12 +15,13 @@ var_startprice e = 2000
 
 
 main exp_n =
+
 myif (exp_n = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2])
 else
 ([t2_inv 0, t2_inv 1, t2_inv 3])
 
 where
-
+{
 c_Buy = 0
 c_Sell = 1
 c_Bid = 2
@@ -92,9 +93,10 @@ t1_bidsize_ x = t1_max 0 ((var_ul exp_n)-1-x)
 
 t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha)
                                   where
+                                  {
                                   midprice = ((bestbid+bestask)/2)
                                   alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2)))
-                                  zeta     = 6
+                                  zeta     = 6}
 
 t1_max x y = myif (x > y) then (x)
              else
@@ -112,9 +114,10 @@ t1_asksize_ x = t1_max 0 (x-((var_ll exp_n)+1))
 
 t1_askprice bestbid bestask inv = t1_max 0 ((midprice+1)+alpha)
                                   where
+                                  {
                                   midprice = ((bestbid+bestask)/2)
                                   alpha = zeta*(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))
-                                  zeta = 6
+                                  zeta = 6}
 
 t1_buy t = myif (t = 0) then (t1_order c_Buy 0 0 1)
            else
@@ -174,9 +177,9 @@ t2_bidsize_ x = t2_max 0 ((var_ul exp_n)-1-x)
 
 t2_bidprice bestbid bestask inv = t2_max 0 ((midprice-1)-alpha)
                                   where
-                                  midprice = ((bestbid+bestask)/2)
+                                  {midprice = ((bestbid+bestask)/2)
                                   alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2)))
-                                  zeta     = 6
+                                  zeta     = 6}
 
 t2_max x y = myif (x > y) then (x)
              else
@@ -194,9 +197,9 @@ t2_asksize_ x = t2_max 0 (x-((var_ll exp_n)+1))
 
 t2_askprice bestbid bestask inv = t2_max 0 ((midprice+1)+alpha)
                                   where
-                                  midprice = ((bestbid+bestask)/2)
+                                  {midprice = ((bestbid+bestask)/2)
                                   alpha = zeta*(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))
-                                  zeta = 6
+                                  zeta = 6}
 
 t2_buy t = myif (t = 0) then (t2_order c_Buy 0 0 2)
            else
@@ -223,6 +226,7 @@ e1_match x y = myif (x = []) then ([[],[],[]])
                else
                ([i3, ([a,f,c,d]:j3), ([e,f,g,h]:k3)]))))
                where
+               {
                a = hd (hd x)
                b = e1_snd (hd x)
                c = e1_thd (hd x)
@@ -244,7 +248,7 @@ e1_match x y = myif (x = []) then ([[],[],[]])
                k2 = e1_thd ns2
                i3 = hd ns3
                j3 = e1_snd ns3
-               k3 = e1_thd ns3
+               k3 = e1_thd ns3}
 
 e1_bidbook_ t = e1_insertbid [] (e1_bids t)
 
@@ -256,6 +260,7 @@ e1_insertbid x y = myif (y = []) then (x)
                    else
                    ([d,e,f,g]:(e1_insertbid q z))))
                    where
+                   {
                    d = hd (hd x)
                    e = e1_snd (hd x)
                    f = e1_thd (hd x)
@@ -267,7 +272,7 @@ e1_insertbid x y = myif (y = []) then (x)
                    i = e1_frh (hd y)
                    a = tl y
                    l = ([d,e,f,g]:q)
-                   z = ([t,s,p,i]:a)
+                   z = ([t,s,p,i]:a)}
 
 e1_bids t = [(t0_bid t), (t1_bid t), (t2_bid t)]
 
@@ -285,6 +290,7 @@ e1_insertask x y = myif (y = []) then (x)
                    else
                    ([d,e,f,g]:(e1_insertask q z))))
                    where
+                   {
                    d = hd (hd x)
                    e = e1_snd (hd x)
                    f = e1_thd (hd x)
@@ -296,7 +302,7 @@ e1_insertask x y = myif (y = []) then (x)
                    i = e1_frh (hd y)
                    a = tl y
                    l = ([d,e,f,g]:q)
-                   z = ([t,s,p,i]:a)
+                   z = ([t,s,p,i]:a)}
 
 e1_asks t = [(t0_ask t), (t1_ask t), (t2_ask t)]
 
@@ -321,4 +327,4 @@ e1_thd x = hd (tl (tl x))
 e1_frh x = hd (tl (tl (tl x)))
 
 e1_fstls x = e1_thd (hd x)
-
+}

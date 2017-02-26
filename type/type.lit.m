@@ -23,7 +23,8 @@ Reads in the file and converts it to tokens
 
 The lexeme contains all the tokens that will be used
 
->lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conif|Conotherwise|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif
+
+>lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif|Idcomment [char]|WBra|WKet
 
 >lex::[char]->[lexeme]
 >lex []             = []
@@ -33,8 +34,11 @@ The lexeme contains all the tokens that will be used
 >lex ('<':xs)       = Opless:(lex xs)
 >lex ('~':'=':xs)   = Opnotequal:(lex xs)
 >lex ('=':xs)       = Opequal:(lex xs)
+>lex ('|':'|':xs)   = (IDcomment (takewhile (~= '\n') xs)) : (lex (tl (dropwhile (~= '\n') xs)))
 >lex ('[':xs)       = LBra:(lex xs)
 >lex (']':xs)       = LKet:(lex xs)
+>lex ('{':xs)       = WBra:(lex xs)
+>lex ('}':xs)       = WKet:(lex xs)
 >lex ('(':xs)       = Bra:(lex xs)
 >lex (')':xs)       = Ket:(lex xs)
 >lex ('+':xs)       = Opplus:(lex xs)
@@ -45,8 +49,6 @@ The lexeme contains all the tokens that will be used
 >lex (':':xs)       = Opcons:(lex xs)
 >lex (',':xs)       = Concomma:(lex xs)
 >lex (x:xs)         = (Idnum (numval a)): (lex b), if (isnumber a)
->                   = Conif:(lex b), if a=['i','f']
->                   = Conotherwise:(lex b), if a=['o','t','h','e','r','w','i','s','e']
 >                   = Funhead:(lex b), if a=['h','d']
 >                   = Funtail:(lex b), if a=['t','l']
 >                   = Conwhere:(lex b), if a=['w','h','e','r','e']
@@ -113,39 +115,21 @@ The lexeme contains all the tokens that will be used
 
 
 
-
-
 Parse tree
 The parse tree is componsed of type strutures that will be used to store the read in file
 
 program is the parent type containing trees for the entire read in file
 
->program::= Program types functions experiment
 
-types contains all of the user type definations for the program
-it can look something like (Types deftype Emptytypes) for a single type
+>program ::= Program [definition] experiment
 
->types::= Emptytypes|Types deftype types
+>definition ::= Name [char] expression | Function [char] [argument] expression
 
-deftype contains the name of the type, the arguments and then an expression of what the type equals (normally a number)
-
->deftype::= Type [char] arguments expression
 
 here the arguments are the arguments to a fucntion call
 
->arguments::= Emptyargs|Args arg arguments
+>argument::= Argument expression
 
->arg::= Arg expression
-
-the fucntion body used to expression all the functions
-functions lists all the fucntions
-function has the name of the function its code and its where statemnts
-
->functions::= Emptyfunctions|Functions function functions
-
->function::= Function [char] arguments expression whereblock
-
->whereblock::= Emptywhere|Whereblock expression whereblock
 
 the experiment contains the globalvariables which are Variables that
 can be changed for differnt runs of the experiment. then it has
@@ -153,15 +137,13 @@ the experiment code, detailing the function main and the code
 used for the experiment. Then it has the experiment call meaning the
 final experiment numbers to run
 
->experiment::= Experiment globalvariables experimentbody experimentrun
+>experiment::= Experiment [globalvariables] experimentbody experimentrun
 
->globalvariables::= Emptygvar|Globalvariables defgvar globalvariables
+>globalvariables::= Globalvariables [char] [argument] expression
 
->defgvar::= Defgvar [char] arguments expression
+>experimentbody::= Emptybody|Expbody expression
 
->experimentbody::= Emptebody|Expbody expression
-
->experimentrun::= Empterun|Exprun expression
+>experimentrun::= Emptyrun|Exprun expression
 
 
 expression defines the occurance of actual code in a recurance format
@@ -170,18 +152,17 @@ this should be able to represent any function
 >expression::= Emptyexpression
 >              |Ifelse expression expression expression ||this is the if statement taking: if condition, true code, else code
 >              |Brackets expression
->              |List arguments ||for []
->              |Operaction expression op expression
->              |Funint [char] arguments ||internally defined functions
->              |Funext [char] arguments ||externally defined functions
+>              |List [argument] ||for []
+>              |Operation expression op expression
+>              |Funint [char] [argument] ||internally defined functions
+>              |Funext [char] [argument] ||externally defined functions
 >              |Varint [char]
 >              |Varex [char]
 >              |Specialfunc specfunc expression
 >              |Number num
+>              |Where expression [definition]
 
->internarg::= Emptyinarg|Internarg expression internarg
-
->op::= Pluss
+>op::= Plus
 >      |Minus
 >      |Multiply
 >      |Divide
@@ -211,39 +192,118 @@ this should be able to represent any function
 Parser
 This turns the tokens into the parse tree type
 
->parser x = Program (p_types a) (p_agents b) (p_experiment c)
+
+>parser x = Program (p_definations a) (p_exeremint b)
 >           where
->           a = find_types1 x
->           b = find_code1 x
+>           a = find_code1 x
+>           b = find_expr1 x
 
-||find_types isolates the code defining global types "var_" and retuns this
+find_code takes the input lexemes and returns just the body of the definations, the code inside the
+experements where block.
+find_code1 finds where the body of the code starts and passes this to find_code2.
 
->find_types1 []             = []
->find_types1 ((Idvar a):xs) = find_types2 ((Idvar a):xs) []
->find_types1 (x:xs)         = find_types1 xs
+>find_code1 []                              = []
+>find_code1 (Conwhere:WBra:(Idfunc a b):xs) = find_code2 ((Idfunc a b):xs) []
+>find_code1 (Conwhere:WBra:(Idtype a):xs)   = find_code2 ((Idtype a):xs) []
+>find_code1 (x:xs)                          = find_code1 xs
 
->find_types2 []           b = b ||if var is put at end of file
->find_types2 (Expr:xs)    b = b ||if var is put before the main
->find_types2 (Idexrun:xs) b = b ||if var is put before run_main
->find_types2 (x:xs)       b = find_types xs (b++[x])
+>find_code2 (WBra:xs) b = find_code2 x y
+>                         where
+>                         (x, y) = find_code3 (xs) (b++[WBra])
+>find_code2 (WKet:xs) b = b
+>find_code2 (x:xs)    b = find_code2 xs (b++[x])
+
+>find_code3 (WBra:xs) b = find_code3 xs (b++[WBra])
+>find_code3 (WKet:xs) b = (xs, (b++[WKet]))
+>find_code3 (x:xs)    b = find_code3 xs (b++[x])
+
+
+
+
+
+
+
+
+
+
+
+parser x = Program (p_types a) (p_fucntions b) (p_experiment c d e)
+           where
+           a = find_types1 x ||numeric types
+           b = find_code1 x ||code body
+           c = find_exprc1 x ||global varbiles
+           d = find_exprb1 x ||experment body
+           e = find_exprr1 x ||experemnt run
+
+||find_exprc finds the numeric types and returns them
+
+find_types1 []              = []
+find_types1 ((Idtype a):xs) = find_types2 ((Idtype a):xs) []
+find_types1 (x:xs)          = find_types1 xs
+
+find_types2 [] b = b
+find_types2 ((Idfunc x y):xs) b = b
+find_types2 (x:xs)            b = find_types2 xs (b++[x])
 
 
 ||find_code isolates the main body of the code and returns this
 
->find_code1 []        = []
->find_code1 (Expr:xs) = find_code2 xs
->find_code1 (x:xs)    = find_code1 xs
+find_code1 []        = []
+find_code1 (Expr:xs) = find_code2 xs
+find_code1 (x:xs)    = find_code1 xs
 
->find_code2 []            = []
->find_code2 (Conwhere:xs) = find_code3 xs
->find_code2 (x:xs)        = find_code2 xs
+find_code2 []            = []
+find_code2 (Conwhere:xs) = find_code3 xs
+find_code2 (x:xs)        = find_code2 xs
 
->find_code3 []                = []
->find_code3 ((Idfunc a b):xs) = find_code4 ((Idfunc a b):xs) []
->find_code3 (x:xs)            = find_code3 xs
+find_code3 []                = []
+find_code3 ((Idfunc a b):xs) = find_code4 ((Idfunc a b):xs) []
+find_code3 (x:xs)            = find_code3 xs
 
->find_code4 []             b = b
->find_code4 (x:xs)         b = find_code4 xs (b++[x])
+find_code4 []             b = b
+find_code4 (x:xs)         b = find_code4 xs (b++[x])
+
+
+||find_types isolates the code defining global types "var_" and retuns this
+
+find_exprv1 []             = []
+find_exprv1 ((Idvar a):xs) = find_exprv2 ((Idvar a):xs) []
+find_exprv1 (x:xs)         = find_exprv1 xs
+
+find_exprv2 []           b = b ||if var is put at end of file
+find_exprv2 (Expr:xs)    b = b ||if var is put before the main
+find_exprv2 (Idexrun:xs) b = b ||if var is put before run_main
+find_exprv2 (x:xs)       b = find_exprv2 xs (b++[x])
+
+||returns the code body that is the experment
+
+find_exprb1 []        = []
+find_exprb1 (Expr:xs) = find_exprb3 (find_exprb2 xs []) []
+find_exprb1 (x:xs)    = find_exprb1 xs
+
+find_exprb2 []        b = b
+find_exprb2 (Expr:xs) b = find_exprb2 xs []
+find_exprb2 (x:xs)    b = find_exprb2 xs (b++[x])
+
+find_exprb3 []            b = b
+find_exprb3 (Conwhere:xs) b = b
+find_exprb3 (x:xs)        b = find_exprb3 xs (b++[x])
+
+
+||returns the expemrent run expression run_main
+
+find_exprr1 []           = []
+find_exprr1 (Idexrun:xs) = find_exprr2 xs []
+find_exprr1 (x:xs)       = find_exprr1 xs
+
+find_exprr2 []             b = b
+find_exprr2 ((Idvar a):xs) b = b
+find_exprr2 ((Expr):xs)    b = find_exprr3
+find_exprr2 (x:xs)         b = find_exprr2 xs (b++[x])
+
+
+
+
 
 
 

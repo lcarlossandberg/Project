@@ -51,6 +51,8 @@ lex (x:xs)         = (Idnum (numval a)): (lex b), if (isnumber a)
                      f ('=':xs) a = (a,('=':xs))
                      f (']':xs) a = (a,(']':xs))
                      f (':':xs) a = (a,(':':xs))
+                     f ('{':xs) a = (a,('{':xs))
+                     f ('}':xs) a = (a,('}':xs))
                      f (x:xs)   a = f xs (a++[x])
 
 
@@ -105,7 +107,7 @@ experimentrun::= Emptyrun|Exprun expression
 
 
 expression::= Emptyexpression
-              |Ifelse expression expression expression
+              |Ifelse expression expression expression ||-
               |Brackets expression ||-
               |List [argument]
               |Operation expression op expression ||-
@@ -115,7 +117,7 @@ expression::= Emptyexpression
               |Varex [char] ||-
               |Specialfunc specfunc expression
               |Number num ||-
-              |Where expression [definition]
+              |Where expression [definition] ||-
 
 op::= Plus
       |Minus
@@ -136,12 +138,16 @@ t2 = "t0_order c_Bid 0 0 0 t0_bid t = 4"
 t3 = "c_Bid 1 2 3 t0_bid t 4"
 t4 = "c_buy 1 2 3 c_bid 4 = 5"
 t1= "(1+2)+3 3 4"
+t5= "myif (x > y) then (x) else (y)"
+t7= "1+a where{ a = 5 }"
+t8= "(1+(2-3)) (3+4) (5+6) 7 8"
 
-test = lex t1
+test = lex t7
 
 r = get_expression test Emptyexpression
 r2 = get_function (lex t2) []
 r3 = get_argsfun (lex t3) []
+r4 = get_ifstatement (lex t8)
 
 
 get_definationslist [] defs = defs
@@ -164,39 +170,52 @@ get_definationslist ((Idfunc x y):xs) defs = get_definationslist new_xs new_defs
                                              new_defs = defs ++ [def]
 
 
+
+
+
+||hoow to deal with 2+(if true 5 6) if there is a plus it will split the code into two sections and run each independently so that both side of the plus return with no list left and then the rest of the total list is returned, put mutual recursion in get_expression so there is no mutual recursion
+
+
+
+
+get_expression (Stateif:xs) Emptyexpression = get_expression new_xs new_a
+                                              where
+                                              (if_con, if_yes, if_no, new_xs) = get_ifstatement xs
+                                              (true_con, rest1) = get_expression if_con Emptyexpression
+                                              (true_yes, rest2) = get_expression if_yes Emptyexpression
+                                              (true_no, rest3) = get_expression if_no Emptyexpression
+                                              new_a = (Ifelse true_con true_yes true_no)
 get_expression (Conwhere:WBra:xs) a = (new_a, new_xs)
                                       where
                                       (inter_where, new_xs) = get_wherestate xs []
                                       def_list = get_definationslist inter_where []
                                       new_a = Where a def_list
-get_expression (Bra:xs) a = get_expression new_xs new_a
-                            where
-                            (in_bra, new_xs) = get_bracket xs []
-                            (exp_inbra, rest) = get_expression in_bra Emptyexpression
-                            new_a = (Brackets (exp_inbra))
-get_expression ((Idfunc x y):xs) a = get_expression new_xs new_a
-                                     where
-                                     (arg_list, new_xs) = get_function xs []
-                                     ex_arglist = f arg_list []
-                                     f [] m = m
-                                     f n m = f nn nnm
-                                             where
-                                             (nm, nn) = get_expression n Emptyexpression
-                                             nnm = m++[Argument nm]
-                                     new_a = (Funext x y ex_arglist)
-get_expression (x:xs) Emptyexpression = get_expression xs (match_exp x) ||look at this again
+get_expression (Bra:xs) Emptyexpression = get_expression new_xs new_a
+                                          where
+                                          (in_bra, new_xs) = get_bracket xs []
+                                          (exp_inbra, rest) = get_expression in_bra Emptyexpression
+                                          new_a = (Brackets (exp_inbra))
+get_expression ((Idfunc x y):xs) Emptyexpression = get_expression new_xs new_a
+                                                   where
+                                                   (arg_list, new_xs) = get_function xs []
+                                                   ex_arglist = f arg_list []
+                                                   f [] m = m
+                                                   f n m = f nn nnm
+                                                           where
+                                                           (nm, nn) = get_expression n Emptyexpression
+                                                           nnm = m++[Argument nm]
+                                                   new_a = (Funext x y ex_arglist)
+get_expression ((Idnum x):xs) Emptyexpression = get_expression xs (Number x)
+get_expression ((Idintvar x):xs) Emptyexpression = get_expression xs (Varint x)
+get_expression ((Idvar x):xs) Emptyexpression = get_expression xs (Varex x)
+
 get_expression x      a = (a, x), if end_test x
                         = get_expression new_x new_a, otherwise
                           where
-                          (new_x, new_a) = do_op x a
+                          (rest_a, new_x) = get_expression (tl x) Emptyexpression
+                          new_a = (Operation a (match_op (hd x)) rest_a)
 
-
-
-
-
-match_exp (Idnum x) = Number x
-match_exp (Idintvar x) = Varint x
-match_exp (Idvar x) = Varex x
+where where where it doesnt work if there is a where statement 
 
 
 
@@ -239,12 +258,8 @@ end_test (Opequal:xs) = False
 end_test (Opnotequal:xs) = False
 end_test (Oplessequ:xs) = False
 end_test (Opgreaterequ:xs) = False
+end_test (Conwhere:xs) = False
 end_test x = True
-
-
-do_op (x:xs) a = (rest, (Operation a (match_op x) rest_a))
-                 where
-                 (rest_a, rest) = get_expression xs Emptyexpression
 
 
 
@@ -268,6 +283,40 @@ get_wherestate (x:xs) a = get_wherestate xs (a++[x])
 
 get_inputargs (Opequal:xs) a = (a, xs)
 get_inputargs (x:xs)       a = get_inputargs xs (a++[x])
+
+get_ifstatement x = (con, yes, no, rest)
+                    where
+                    (con, rest1) = get_bracket (tl x) []
+                    (yes, rest2) = get_bracket (tl rest1) []
+                    (no, rest)   = get_bracket (tl rest2) []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

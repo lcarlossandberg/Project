@@ -154,9 +154,13 @@ get_expression (Bra:xs) a = get_expression new_xs new_a
 get_expression ((Idfunc x y):xs) a = get_expression new_xs new_a
                                      where
                                      (arg_list, new_xs) = get_function xs []
-                                     ex_arglist = 
+                                     ex_arglist = f arg_list []
+                                     f [] m = m
+                                     f n m = f nn nnm
+                                             where
+                                             (nm, nn) = get_expression n Emptyexpression
+                                             nnm = m++[Argument nm]
                                      new_a = (Funext x y ex_arglist)
-
 get_expression (x:xs) Emptyexpression = get_expression xs (match_exp x) ||look at this again
 get_expression x      a = (a, x), if end_test x
                         = get_expression new_x new_a, otherwise

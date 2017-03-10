@@ -56,7 +56,7 @@ The lexeme contains all the tokens that will be used
 >                   = Stateif:(lex b), if a=['m','y','i','f']
 >                   = (lex b), if a=['t','h','e','n']
 >                   = (lex b), if a=['e','l','s','e']
->                   = (Idcons a):(lex b), if (istype a)
+>                   = (Idcons a):(lex b), if (iscons a)
 >                   = (Idvar a):(lex b), if (isvar a)
 >                   = (Idexrun):(lex b), if (isrun a)
 >                   = (returnfunc a []):(lex b), if (isfunc a)
@@ -85,7 +85,7 @@ The lexeme contains all the tokens that will be used
 >removeall xs (y:ys) = removeall xs ys, if member xs y
 >                    = y:(removeall xs ys), otherwise
 
->istype x = beforescore x [] = ['c']
+>iscons x = beforescore x [] = ['c']
 
 >isvar x = beforescore x [] = ['v','a','r']
 

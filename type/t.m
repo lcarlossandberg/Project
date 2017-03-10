@@ -31,7 +31,7 @@ lex (x:xs)         = (Idnum (numval a)): (lex b), if (isnumber a)
                    = Stateif:(lex b), if a=['m','y','i','f']
                    = (lex b), if a=['t','h','e','n']
                    = (lex b), if a=['e','l','s','e']
-                   = (Idcons a):(lex b), if (istype a)
+                   = (Idcons a):(lex b), if (iscons a)
                    = (Idvar a):(lex b), if (isvar a)
                    = (Idexrun):(lex b), if (isrun a)
                    = (returnfunc a []):(lex b), if (isfunc a)
@@ -60,7 +60,7 @@ removeall xs []     = []
 removeall xs (y:ys) = removeall xs ys, if member xs y
                     = y:(removeall xs ys), otherwise
 
-istype x = beforescore x [] = ['c']
+iscons x = beforescore x [] = ['c']
 
 isvar x = beforescore x [] = ['v','a','r']
 
@@ -110,7 +110,7 @@ expression::= Emptyexpression
               |List [argument]
               |Operation expression op expression ||-
               |Funint [char] [argument]
-              |Funext [char] [char] [argument]
+              |Funext [char] [char] [argument] ||-
               |Varint [char] ||-
               |Varex [char] ||-
               |Specialfunc specfunc expression
@@ -144,8 +144,31 @@ r2 = get_function (lex t2) []
 r3 = get_argsfun (lex t3) []
 
 
+get_definationslist [] defs = defs
+get_definationslist ((Idcons x):xs) defs = get_definationslist new_xs new_defs
+                                           where
+                                           (exp, new_xs) = get_expression xs Emptyexpression
+                                           def = Name x exp
+                                           new_defs = defs ++ [def]
+get_definationslist ((Idfunc x y):xs) defs = get_definationslist new_xs new_defs
+                                             where
+                                             (arglist1, rest) = get_inputargs xs []
+                                             arglist2 = f arglist1 []
+                                             f [] a = a
+                                             f x a = f new_x new_a
+                                                     where
+                                                     (mid_a, new_x) = get_expression x Emptyexpression
+                                                     new_a = a++[Argument mid_a]
+                                             (exp, new_xs) = get_expression rest Emptyexpression
+                                             def = Function x y arglist2 exp
+                                             new_defs = defs ++ [def]
 
 
+get_expression (Conwhere:WBra:xs) a = (new_a, new_xs)
+                                      where
+                                      (inter_where, new_xs) = get_wherestate xs []
+                                      def_list = get_definationslist inter_where []
+                                      new_a = Where a def_list
 get_expression (Bra:xs) a = get_expression new_xs new_a
                             where
                             (in_bra, new_xs) = get_bracket xs []
@@ -240,9 +263,11 @@ get_argsfun (x:xs)            a = get_argsfun xs (a++[x])
 reverse_list []     a = a
 reverse_list (x:xs) a = reverse_list xs (x:a)
 
+get_wherestate (WKet:xs) a = (a, xs)
+get_wherestate (x:xs) a = get_wherestate xs (a++[x])
 
-
-
+get_inputargs (Opequal:xs) a = (a, xs)
+get_inputargs (x:xs)       a = get_inputargs xs (a++[x])
 
 
 

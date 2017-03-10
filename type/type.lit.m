@@ -24,7 +24,7 @@ Reads in the file and converts it to tokens
 The lexeme contains all the tokens that will be used
 
 
->lexeme::= Idtype [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif|Idcomment [char]|WBra|WKet
+>lexeme::= Idcons [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif|Idcomment [char]|WBra|WKet
 
 >lex::[char]->[lexeme]
 >lex []             = []
@@ -56,7 +56,7 @@ The lexeme contains all the tokens that will be used
 >                   = Stateif:(lex b), if a=['m','y','i','f']
 >                   = (lex b), if a=['t','h','e','n']
 >                   = (lex b), if a=['e','l','s','e']
->                   = (Idtype a):(lex b), if (istype a)
+>                   = (Idcons a):(lex b), if (istype a)
 >                   = (Idvar a):(lex b), if (isvar a)
 >                   = (Idexrun):(lex b), if (isrun a)
 >                   = (returnfunc a []):(lex b), if (isfunc a)
@@ -123,7 +123,7 @@ program is the parent type containing trees for the entire read in file
 
 >program ::= Program [definition] experiment
 
->definition ::= Name [char] expression | Function [char] [argument] expression
+>definition ::= Name [char] expression | Function [char] [char] [argument] expression  ||first list agent name second list function name
 
 
 here the arguments are the arguments to a fucntion call
@@ -192,8 +192,10 @@ this should be able to represent any function
 Parser
 This turns the tokens into the parse tree type
 
+this section of code takes the input file and breaks it into two main sections, the body and the experemnt
+the experemnt is broken down further into the global varibles the experemnt body and the experemnt run
 
->parser x = Program (p_definations a) (p_exeremint b c d)
+>parser x = Program (p_definations a []) (p_exeremint b c d)
 >           where
 >           a = find_code1 x
 >           b = find_evar1 x
@@ -206,7 +208,7 @@ find_code1 finds where the body of the code starts and passes this to find_code2
 
 >find_code1 []                              = []
 >find_code1 (Conwhere:WBra:(Idfunc a b):xs) = find_code2 ((Idfunc a b):xs) []
->find_code1 (Conwhere:WBra:(Idtype a):xs)   = find_code2 ((Idtype a):xs) []
+>find_code1 (Conwhere:WBra:(Idcons a):xs)   = find_code2 ((Idcons a):xs) []
 >find_code1 (x:xs)                          = find_code1 xs
 
 >find_code2 (WBra:xs) b = find_code2 x y
@@ -261,81 +263,113 @@ returns the expemrent run expression run_main
 >find_exprr3 (x:xs)    = find_exprr3 xs
 
 
+here the code body that was passed in the last section is turned into functions and returned as a list
+[definition]
+
+>p_definations [] r = r
+>p_definations xs r = p_definations b (r++[a])
+>                     where
+>                     (a, b) = find_def1 xs
+
+find_def returns the first defination in the list it is passed and the rest of the list
 
 
-parser x = Program (p_types a) (p_fucntions b) (p_experiment c d e)
-           where
-           a = find_types1 x ||numeric types
-           b = find_code1 x ||code body
-           c = find_exprc1 x ||global varbiles
-           d = find_exprb1 x ||experment body
-           e = find_exprr1 x ||experemnt run
-
-||find_exprc finds the numeric types and returns them
-
-find_types1 []              = []
-find_types1 ((Idtype a):xs) = find_types2 ((Idtype a):xs) []
-find_types1 (x:xs)          = find_types1 xs
-
-find_types2 [] b = b
-find_types2 ((Idfunc x y):xs) b = b
-find_types2 (x:xs)            b = find_types2 xs (b++[x])
+>find_def1 ((Idcons a):Opequal:xs) = Name a (p_expression xs)
 
 
-||find_code isolates the main body of the code and returns this
 
-find_code1 []        = []
-find_code1 (Expr:xs) = find_code2 xs
-find_code1 (x:xs)    = find_code1 xs
-
-find_code2 []            = []
-find_code2 (Conwhere:xs) = find_code3 xs
-find_code2 (x:xs)        = find_code2 xs
-
-find_code3 []                = []
-find_code3 ((Idfunc a b):xs) = find_code4 ((Idfunc a b):xs) []
-find_code3 (x:xs)            = find_code3 xs
-
-find_code4 []             b = b
-find_code4 (x:xs)         b = find_code4 xs (b++[x])
+>p_expression ((Idnum a):xs) = Number a
+>p_expression ((Idvar a):xs) = Varex a
+>p_expression ((Idintvar a):xs) = Varint a
 
 
-||find_types isolates the code defining global types "var_" and retuns this
-
-find_exprv1 []             = []
-find_exprv1 ((Idvar a):xs) = find_exprv2 ((Idvar a):xs) []
-find_exprv1 (x:xs)         = find_exprv1 xs
-
-find_exprv2 []           b = b ||if var is put at end of file
-find_exprv2 (Expr:xs)    b = b ||if var is put before the main
-find_exprv2 (Idexrun:xs) b = b ||if var is put before run_main
-find_exprv2 (x:xs)       b = find_exprv2 xs (b++[x])
-
-||returns the code body that is the experment
-
-find_exprb1 []        = []
-find_exprb1 (Expr:xs) = find_exprb3 (find_exprb2 xs []) []
-find_exprb1 (x:xs)    = find_exprb1 xs
-
-find_exprb2 []        b = b
-find_exprb2 (Expr:xs) b = find_exprb2 xs []
-find_exprb2 (x:xs)    b = find_exprb2 xs (b++[x])
-
-find_exprb3 []            b = b
-find_exprb3 (Conwhere:xs) b = b
-find_exprb3 (x:xs)        b = find_exprb3 xs (b++[x])
 
 
-||returns the expemrent run expression run_main
 
-find_exprr1 []           = []
-find_exprr1 (Idexrun:xs) = find_exprr2 xs []
-find_exprr1 (x:xs)       = find_exprr1 xs
 
-find_exprr2 []             b = b
-find_exprr2 ((Idvar a):xs) b = b
-find_exprr2 ((Expr):xs)    b = find_exprr3
-find_exprr2 (x:xs)         b = find_exprr2 xs (b++[x])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+expression::= Emptyexpression
+              |Ifelse expression expression expression ||this is the if statement taking: if condition, true code, else code
+              |Brackets expression
+              |List [argument] ||for []
+              |Operation expression op expression
+              |Funint [char] [argument] ||internally defined functions
+              |Funext [char] [argument] ||externally defined functions
+|Varint [char]
+|Varex [char]
+              |Specialfunc specfunc expression
+|Number num
+              |Where expression [definition]
+
+op::= Plus
+      |Minus
+      |Multiply
+      |Divide
+      |Lessthan
+      |Greaterthan
+      |Equals
+      |Notequals
+      |Lessequ
+      |Greaterequ
+
+specfunc::= Listhead|Listtail|Listadd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -359,11 +393,11 @@ parser any         = error ("Bad input format (parser): "++(show any))
 p_defs::[lexeme]->defs
 p_defs []           = Emptydefs
 p_defs (Def any:xs) = Defse (p_fundef a), if b=[] ||this is called when there is only a single function
-= Defs (p_fundef a) (p_defs b), otherwise
-where (a, b)        = f_split (Def any:xs) []
-f_split []        a = (a, [])                     || Chris comment - don't forget this case!
-f_split (Lend:xs) a = (a, xs)
-f_split (x:xs)    a = f_split xs (a++[x])
+                    = Defs (p_fundef a) (p_defs b), otherwise
+                      where (a, b)        = f_split (Def any:xs) []
+                      f_split []        a = (a, [])                     || Chris comment - don't forget this case!
+                      f_split (Lend:xs) a = (a, xs)
+                      f_split (x:xs)    a = f_split xs (a++[x])
 p_defs any          = error ("Bad input format (p_defs): "++(show any))
 
 ||this takes a function and breaks it into its name, arguments and expressions

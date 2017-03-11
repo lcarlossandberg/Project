@@ -14,9 +14,9 @@ var_startprice e = 2000
 
 
 
-main exp_n =
+main runnumber =
 
-myif (exp_n = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2])
+myif (runnumber = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2])
 else
 ([t2_inv 0, t2_inv 1, t2_inv 3])
 
@@ -30,7 +30,7 @@ c_Ask = 3
 
 
 
-t0_sell t = myif (t < (var_selltime exp_n) ) then (t0_order c_Sell 1000 0 0)
+t0_sell t = myif (t < (var_selltime runnumber) ) then (t0_order c_Sell 1000 0 0)
             else
             (t0_order c_Sell 0 0 0)
 
@@ -47,7 +47,7 @@ t0_buy t = t0_order c_Buy 0 0 0
 
 
 
-t1_inv t = myif (t = 0) then ((var_t1startinv exp_n) )
+t1_inv t = myif (t = 0) then ((var_t1startinv runnumber) )
            else
            ((t1_inv (t-1)) + (t1_psi (t1_xbids(t-1))) + (t1_psi (t1_xbuys(t-1))) - (t1_psi (t1_xasks(t-1))) - (t1_psi (t1_xsells(t-1))))
 
@@ -73,65 +73,65 @@ t1_frh x = hd (tl (tl (tl x)))
 
 t1_sell t = myif (t = 0) then (t1_order c_Sell  0 0 1)
             else
-            (t1_order c_Sell  (t1_sellsize (t1_inv t)) (var_nu exp_n)  1)
+            (t1_order c_Sell  (t1_sellsize (t1_inv t)) (var_nu runnumber)  1)
 
 t1_order a b c d = [a, b, c, d]
 
-t1_sellsize x = myif (x < (var_ul exp_n)) then (0)
+t1_sellsize x = myif (x < (var_ul runnumber)) then (0)
                 else
-                ((var_ul exp_n))
+                ((var_ul runnumber))
 
-t1_bid t = myif (t = 0) then (t1_order c_Bid (t1_bidsize (t1_inv 0)) (t1_bidprice ((var_startprice exp_n)-1) ((var_startprice exp_n)+1) (t1_inv 0)) 1)
+t1_bid t = myif (t = 0) then (t1_order c_Bid (t1_bidsize (t1_inv 0)) (t1_bidprice ((var_startprice runnumber)-1) ((var_startprice runnumber)+1) (t1_inv 0)) 1)
            else
            (t1_order c_Bid (t1_bidsize (t1_inv t)) (t1_bidprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t1_inv t)) 1)
 
-t1_bidsize x = myif (x = (var_ul exp_n)) then (0)
+t1_bidsize x = myif (x = (var_ul runnumber)) then (0)
                else
                (t1_bidsize_(x))
 
-t1_bidsize_ x = t1_max 0 ((var_ul exp_n)-1-x)
+t1_bidsize_ x = t1_max 0 ((var_ul runnumber)-1-x)
 
 t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha)
                                   where
                                   {
                                   midprice = ((bestbid+bestask)/2)
-                                  alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2)))
+                                  alpha    = zeta*(1-(((var_ul runnumber)-1-inv)/((var_ul runnumber)-(var_ll runnumber)-2)))
                                   zeta     = 6}
 
 t1_max x y = myif (x > y) then (x)
              else
              (y)
 
-t1_ask t = myif (t < 2) then (t1_order c_Ask (t1_asksize (t1_inv t)) ((var_startprice exp_n)+1) 1)
+t1_ask t = myif (t < 2) then (t1_order c_Ask (t1_asksize (t1_inv t)) ((var_startprice runnumber)+1) 1)
            else
            (t1_order c_Ask (t1_asksize (t1_inv t)) (t1_askprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t1_inv t)) 1)
 
-t1_asksize x = myif (x <= (var_ll exp_n)) then (0)
+t1_asksize x = myif (x <= (var_ll runnumber)) then (0)
                else
                (t1_asksize_(x))
 
-t1_asksize_ x = t1_max 0 (x-((var_ll exp_n)+1))
+t1_asksize_ x = t1_max 0 (x-((var_ll runnumber)+1))
 
 t1_askprice bestbid bestask inv = t1_max 0 ((midprice+1)+alpha)
                                   where
                                   {
                                   midprice = ((bestbid+bestask)/2)
-                                  alpha = zeta*(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))
+                                  alpha = zeta*(((var_ul runnumber)-1-inv)/((var_ul runnumber)-(var_ll runnumber)-2))
                                   zeta = 6}
 
 t1_buy t = myif (t = 0) then (t1_order c_Buy 0 0 1)
            else
-           (t1_order c_Buy (t1_buysize (t1_inv t)) (var_nu exp_n)  1)
+           (t1_order c_Buy (t1_buysize (t1_inv t)) (var_nu runnumber)  1)
 
-t1_buysize x = myif (x > (var_ll exp_n)) then (0)
+t1_buysize x = myif (x > (var_ll runnumber)) then (0)
                else
-               (-(var_ll exp_n))
+               (-(var_ll runnumber))
 
 
 
 
 
-t2_inv t = myif (t = 0) then ((var_t2startinv exp_n) )
+t2_inv t = myif (t = 0) then ((var_t2startinv runnumber) )
            else
            ((t2_inv (t-1)) + (t2_psi (t2_xbids(t-1))) + (t2_psi (t2_xbuys(t-1))) - (t2_psi (t2_xasks(t-1))) - (t2_psi (t2_xsells(t-1))))
 
@@ -157,57 +157,57 @@ t2_frh x = hd (tl (tl (tl x)))
 
 t2_sell t = myif (t = 0) then (t2_order c_Sell  0 0 2)
             else
-            (t2_order c_Sell  (t2_sellsize (t2_inv t)) (var_nu exp_n)  2)
+            (t2_order c_Sell  (t2_sellsize (t2_inv t)) (var_nu runnumber)  2)
 
 t2_order a b c d = [a, b, c, d]
 
-t2_sellsize x = myif (x < (var_ul exp_n)) then (0)
+t2_sellsize x = myif (x < (var_ul runnumber)) then (0)
                 else
-                ((var_ul exp_n))
+                ((var_ul runnumber))
 
-t2_bid t = myif (t = 0) then (t2_order c_Bid (t2_bidsize (t2_inv 0)) (t2_bidprice ((var_startprice exp_n)-1) ((var_startprice exp_n)+1) (t2_inv 0)) 2)
+t2_bid t = myif (t = 0) then (t2_order c_Bid (t2_bidsize (t2_inv 0)) (t2_bidprice ((var_startprice runnumber)-1) ((var_startprice runnumber)+1) (t2_inv 0)) 2)
            else
            (t2_order c_Bid (t2_bidsize (t2_inv t)) (t2_bidprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t2_inv t)) 2)
 
-t2_bidsize x = myif (x = (var_ul exp_n)) then (0)
+t2_bidsize x = myif (x = (var_ul runnumber)) then (0)
                else
                (t2_bidsize_(x))
 
-t2_bidsize_ x = t2_max 0 ((var_ul exp_n)-1-x)
+t2_bidsize_ x = t2_max 0 ((var_ul runnumber)-1-x)
 
 t2_bidprice bestbid bestask inv = t2_max 0 ((midprice-1)-alpha)
                                   where
                                   {midprice = ((bestbid+bestask)/2)
-                                  alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2)))
+                                  alpha    = zeta*(1-(((var_ul runnumber)-1-inv)/((var_ul runnumber)-(var_ll runnumber)-2)))
                                   zeta     = 6}
 
 t2_max x y = myif (x > y) then (x)
              else
              (y)
 
-t2_ask t = myif (t < 2) then (t2_order c_Ask (t2_asksize (t2_inv t)) ((var_startprice exp_n)+1) 2)
+t2_ask t = myif (t < 2) then (t2_order c_Ask (t2_asksize (t2_inv t)) ((var_startprice runnumber)+1) 2)
            else
            (t2_order c_Ask (t2_asksize (t2_inv t)) (t2_askprice (e1_bestbid(t-1)) (e1_bestask(t-1)) (t2_inv t)) 2)
 
-t2_asksize x = myif (x <= (var_ll exp_n)) then (0)
+t2_asksize x = myif (x <= (var_ll runnumber)) then (0)
                else
                (t2_asksize_(x))
 
-t2_asksize_ x = t2_max 0 (x-((var_ll exp_n)+1))
+t2_asksize_ x = t2_max 0 (x-((var_ll runnumber)+1))
 
 t2_askprice bestbid bestask inv = t2_max 0 ((midprice+1)+alpha)
                                   where
                                   {midprice = ((bestbid+bestask)/2)
-                                  alpha = zeta*(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))
+                                  alpha = zeta*(((var_ul runnumber)-1-inv)/((var_ul runnumber)-(var_ll runnumber)-2))
                                   zeta = 6}
 
 t2_buy t = myif (t = 0) then (t2_order c_Buy 0 0 2)
            else
-           (t2_order c_Buy (t2_buysize (t2_inv t)) (var_nu exp_n)  2)
+           (t2_order c_Buy (t2_buysize (t2_inv t)) (var_nu runnumber)  2)
 
-t2_buysize x = myif (x > (var_ll exp_n)) then (0)
+t2_buysize x = myif (x > (var_ll runnumber)) then (0)
                else
-               (-(var_ll exp_n))
+               (-(var_ll runnumber))
 
 
 
@@ -310,13 +310,13 @@ e1_buys t = [(t0_buy t), (t1_buy t), (t2_buy t)]
 
 e1_bestbid t = myif ((e1_bidbook t) ~= []) then (e1_fstls (e1_bidbook t))
                else
-               ((var_startprice exp_n)-1)
+               ((var_startprice runnumber)-1)
 
 e1_bidbook t = hd (e1_exchoutput1 t)
 
 e1_bestask t = myif ((e1_askbook t) ~= []) then (e1_fstls (e1_askbook t))
                else
-               ((var_startprice exp_n)+1)
+               ((var_startprice runnumber)+1)
 
 e1_askbook t = hd (e1_exchoutput2 t)
 

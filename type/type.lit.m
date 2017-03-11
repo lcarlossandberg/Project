@@ -23,8 +23,9 @@ Reads in the file and converts it to tokens
 
 The lexeme contains all the tokens that will be used
 
-
 >lexeme::= Idcons [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif|Idcomment [char]|WBra|WKet
+
+this shows the relations between the input langauge and the intermiate lexemes
 
 >lex::[char]->[lexeme]
 >lex []             = []
@@ -125,8 +126,9 @@ program is the parent type containing trees for the entire read in file
 
 >program ::= Program [definition] experiment
 
->definition ::= Name [char] expression | Function [char] [char] [argument] expression | InterVariable [char] expression  ||first list agent name second list function name
+definations organises the code, with the main functions either being a function or a type constant or internal varbile placed inside a where block
 
+>definition ::= Name [char] expression | Function [char] [char] [argument] expression | InterVariable [char] expression
 
 here the arguments are the arguments to a fucntion call
 
@@ -151,7 +153,7 @@ final experiment numbers to run
 expression defines the occurance of actual code in a recurance format
 this should be able to represent any function
 
->expression::= Emptyexpression
+>expression::= Emptyexpression ||primarly used to intiate loops and should not ever exist in the final out put
 >              |Ifelse expression expression expression ||this is the if statement taking: if condition, true code, else code
 >              |Brackets expression
 >              |List [expression] ||for []
@@ -179,7 +181,6 @@ this should be able to represent any function
 
 
 >specfunc::= Listhead|Listtail
-
 
 
 
@@ -272,12 +273,10 @@ returns the expemrent run expression run_main
 
 
 
-here the code body that was passed in the last section is turned into functions and returned as a list
-[definition]
 
+this section breaks the code into a list of definations with their associated expressions, this takes a list of lexemes that would represent this list of deifntions and returns a list of definations
 
-
-
+>get_definationslist::[lexeme]->[definition]->[definition]
 >get_definationslist [] defs = defs
 >get_definationslist ((Idcons x):Opequal:xs) defs = get_definationslist new_xs new_defs
 >                                                   where
@@ -307,8 +306,10 @@ here the code body that was passed in the last section is turned into functions 
 
 
 
+Here the code expressions are turned into the expression type, this is for things after an =, so if you had a = 4+3 this would deal with the 4+3
+this takes in the liast of lexemes and a pplace holder expression, normally Emptyexpression, which is used to look at the previos iteraction when self calling.
 
-
+>get_expression::[lexeme]->expression->(expression, [lexeme])
 >get_expression x                 Emptyexpression = (new_a, new_xs), if istherewhere x
 >                                                   where
 >                                                   (bwhere, awhere) = wheresplitter x []
@@ -378,20 +379,9 @@ here the code body that was passed in the last section is turned into functions 
 
 
 
+this part deals purely with brackets and can deal with nested breakes by calling the function get_innerbracket to deal wiht them
 
-
->get_listeditems (LKet:xs)     a = (a, xs)
->get_listeditems (Concomma:xs) a = get_listeditems xs a
->get_listeditems x             a = get_listeditems new_xs nn
->                                  where
->                                  (new_a, new_xs) = get_expression x Emptyexpression
->                                  nn = a++[new_a]
-
-
-
-
-
-
+>get_bracket::[lexeme]->[lexeme]->([lexeme], [lexeme])
 >get_bracket (Bra:xs) a = get_bracket new_xs new_a
 >                         where
 >                         (new_a, new_xs) = get_innerbracket xs (a++[Bra])
@@ -399,6 +389,7 @@ here the code body that was passed in the last section is turned into functions 
 >get_bracket (x:xs)   a = get_bracket xs (a++[x])
 
 
+>get_innerbracket::[lexeme]->[lexeme]->([lexeme], [lexeme])
 >get_innerbracket (Bra:xs) a = get_innerbracket new_xs new_a
 >                              where
 >                              (new_a, new_xs) = get_innerbracket xs (a++[Bra])
@@ -406,7 +397,9 @@ here the code body that was passed in the last section is turned into functions 
 >get_innerbracket (x:xs)   a = get_innerbracket xs (a++[x])
 
 
+returns the new type constrastures sperific for the operactiosn from the lexeme
 
+>match_op::lexeme->op
 >match_op Opplus       = Plus
 >match_op Opminus      = Minus
 >match_op Opmult       = Multiply
@@ -420,6 +413,9 @@ here the code body that was passed in the last section is turned into functions 
 >match_op Opcons       = Listadd
 
 
+checks if the expression has eneded, the only times it has not ended is is this expression is connected to another through a operactior
+
+>end_test::[lexeme]->bool
 >end_test []                = True
 >end_test (Opplus:xs)       = False
 >end_test (Opminus:xs)      = False
@@ -436,8 +432,9 @@ here the code body that was passed in the last section is turned into functions 
 
 
 
+goes through the function to check if it contains a where statement at the end
 
-
+>istherewhere::[lexeme]->bool
 >istherewhere []           = False
 >istherewhere (Stateif:xs) = istherewhere new_xs
 >                            where
@@ -447,15 +444,15 @@ here the code body that was passed in the last section is turned into functions 
 >istherewhere (x:xs)        = istherewhere xs
 
 
+breaks the code into the code before the the where statement (the function) and the code after the where, which will contain the where statemtn and all other definations
 
-
-
+>wheresplitter::[lexeme]->[lexeme]->([lexeme],[lexeme])
 >wheresplitter (Conwhere:WBra:xs) a = (a, xs)
 >wheresplitter (x:xs)             a = wheresplitter xs (a++[x])
 
+returns the aguments the function and the rest of the code
 
-
-
+>get_function::[lexeme]->[lexeme]->([lexeme],[lexeme])
 >get_function []           a = (a, [])
 >get_function (Opequal:xs) a = (new_a, new_xs)
 >                              where
@@ -464,6 +461,7 @@ here the code body that was passed in the last section is turned into functions 
 >get_function (x:xs)       a = get_function xs (a++[x])
 
 
+>get_argsfun::[lexeme]->[lexeme]->([lexeme],[lexeme])
 >get_argsfun ((Idfunc x y):xs) a = ((Idfunc x y):a, (reverse_list xs []))
 >get_argsfun ((Idcons x):xs)   a = ((Idcons x):a, (reverse_list xs []))
 >get_argsfun (x:xs)            a = get_argsfun xs (a++[x])
@@ -471,12 +469,17 @@ here the code body that was passed in the last section is turned into functions 
 >reverse_list []     a = a
 >reverse_list (x:xs) a = reverse_list xs (x:a)
 
+>get_wherestate::[lexeme]->[lexeme]->([lexeme],[lexeme])
 >get_wherestate (WKet:xs) a = (a, xs)
 >get_wherestate (x:xs)    a = get_wherestate xs (a++[x])
 
+>get_inputargs::[lexeme]->[lexeme]->([lexeme],[lexeme])
 >get_inputargs (Opequal:xs) a = (a, xs)
 >get_inputargs (x:xs)       a = get_inputargs xs (a++[x])
 
+breaks and if statement into its section if, true, false and rest 
+
+>get_ifstatement::[lexeme]->([lexeme],[lexeme],[lexeme],[lexeme])
 >get_ifstatement x = (con, yes, no, rest)
 >                    where
 >                    (con, rest1) = get_bracket (tl x) []
@@ -512,73 +515,6 @@ here the code body that was passed in the last section is turned into functions 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-expression::= Emptyexpression
-              |Ifelse expression expression expression ||this is the if statement taking: if condition, true code, else code
-              |Brackets expression
-              |List [argument] ||for []
-              |Operation expression op expression
-              |Funint [char] [argument] ||internally defined functions
-              |Funext [char] [argument] ||externally defined functions
-|Varint [char]
-|Varex [char]
-              |Specialfunc specfunc expression
-|Number num
-              |Where expression [definition]
-
-op::= Plus
-      |Minus
-      |Multiply
-      |Divide
-      |Lessthan
-      |Greaterthan
-      |Equals
-      |Notequals
-      |Lessequ
-      |Greaterequ
-
-specfunc::= Listhead|Listtail|Listadd
 
 
 

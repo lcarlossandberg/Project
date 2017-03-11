@@ -146,6 +146,7 @@ test = lex t3
 r = get_definationslist test []
 
 
+get_definationslist::[lexeme]->[definition]->[definition]
 get_definationslist [] defs = defs
 get_definationslist ((Idcons x):Opequal:xs) defs = get_definationslist new_xs new_defs
                                                    where
@@ -173,7 +174,7 @@ get_definationslist ((Idintvar x):Opequal:xs) defs = get_definationslist new_xs 
 
 
 
-
+get_expression::[lexeme]->expression->(expression, [lexeme])
 get_expression x Emptyexpression = (new_a, new_xs), if istherewhere x
                                    where
                                    (bwhere, awhere) = wheresplitter x []
@@ -243,18 +244,12 @@ get_expression x      a = (a, x), if end_test x
 
 
 
-get_listeditems (LKet:xs) a = (a, xs)
-get_listeditems (Concomma:xs) a = get_listeditems xs a
-get_listeditems x a = get_listeditems new_xs nn
-                      where
-                      (new_a, new_xs) = get_expression x Emptyexpression
-                      nn = a++[new_a]
 
 
 
 
 
-
+get_bracket::[lexeme]->[lexeme]->([lexeme], [lexeme])
 get_bracket (Bra:xs) a = get_bracket new_xs new_a
                          where
                          (new_a, new_xs) = get_innerbracket xs (a++[Bra])
@@ -262,6 +257,7 @@ get_bracket (Ket:xs) a = (a, xs) ||((Brackets bra_internal), xs)
 get_bracket (x:xs)   a = get_bracket xs (a++[x])
 
 
+get_innerbracket::[lexeme]->[lexeme]->([lexeme], [lexeme])
 get_innerbracket (Bra:xs) a = get_innerbracket new_xs new_a
                               where
                               (new_a, new_xs) = get_innerbracket xs (a++[Bra])
@@ -269,7 +265,7 @@ get_innerbracket (Ket:xs) a = ((a++[Ket]), xs)
 get_innerbracket (x:xs)   a = get_innerbracket xs (a++[x])
 
 
-
+match_op::lexeme->op
 match_op Opplus = Plus
 match_op Opminus = Minus
 match_op Opmult = Multiply
@@ -283,6 +279,7 @@ match_op Opgreaterequ = Greaterequ
 match_op Opcons = Listadd
 
 
+end_test::[lexeme]->bool
 end_test [] = True
 end_test (Opplus:xs) = False
 end_test (Opminus:xs) = False
@@ -297,6 +294,7 @@ end_test (Opgreaterequ:xs) = False
 end_test (Opcons:xs) = False
 end_test x = True
 
+istherewhere::[lexeme]->bool
 istherewhere []           = False
 istherewhere (Stateif:xs) = istherewhere new_xs
                             where
@@ -305,9 +303,11 @@ istherewhere (Opequal:xs) = False
 istherewhere (Conwhere:xs) = True
 istherewhere (x:xs) = istherewhere xs
 
+wheresplitter::[lexeme]->[lexeme]->([lexeme],[lexeme])
 wheresplitter (Conwhere:WBra:xs) a = (a, xs)
 wheresplitter (x:xs) a = wheresplitter xs (a++[x])
 
+get_function::[lexeme]->[lexeme]->([lexeme],[lexeme])
 get_function [] a = (a, [])
 get_function (Opequal:xs) a = (new_a, new_xs)
                               where
@@ -315,20 +315,25 @@ get_function (Opequal:xs) a = (new_a, new_xs)
                               new_xs = mid_xs++[Opequal]++xs
 get_function (x:xs) a = get_function xs (a++[x])
 
-
+                                      
+get_argsfun::[lexeme]->[lexeme]->([lexeme],[lexeme])
 get_argsfun ((Idfunc x y):xs) a = ((Idfunc x y):a, (reverse_list xs []))
 get_argsfun ((Idcons x):xs)   a = ((Idcons x):a, (reverse_list xs []))
 get_argsfun (x:xs)            a = get_argsfun xs (a++[x])
 
+                                      
 reverse_list []     a = a
 reverse_list (x:xs) a = reverse_list xs (x:a)
 
+get_wherestate::[lexeme]->[lexeme]->([lexeme],[lexeme])
 get_wherestate (WKet:xs) a = (a, xs)
 get_wherestate (x:xs) a = get_wherestate xs (a++[x])
 
+get_inputargs::[lexeme]->[lexeme]->([lexeme],[lexeme])
 get_inputargs (Opequal:xs) a = (a, xs)
 get_inputargs (x:xs)       a = get_inputargs xs (a++[x])
 
+get_ifstatement::[lexeme]->([lexeme],[lexeme],[lexeme],[lexeme])
 get_ifstatement x = (con, yes, no, rest)
                     where
                     (con, rest1) = get_bracket (tl x) []

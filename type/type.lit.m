@@ -12,7 +12,7 @@ This files contents are then saved in the type format to be proccessed into Inte
 
 Here are the first couple of lines of the sugested input file, just for quick testing of the code
 
->tester = "c_Buy = 0 c_Sell = 1 c_Bid = 2 c_Ask = 3 t0_sell t = t0_order c_Sell 1000 0 0, if t<var_selltime = t0_order c_Sell 0 0 0, otherwise t0_order a b c d = [a, b, c, d] t0_bid t = t0_order c_Bid 0 0 0 t0_ask t = t0_order c_Ask 0 0 0 t0_buy t = t0_order c_Buy 0 0 0"
+>tester ="c_Buy = 0 t0_sell t = myif (t < (var_selltime exp_n) ) then (t0_order 1000 0 0) else (t0_order c_Sell 0 0 0) t0_buy t = t0_order c_Buy 0 0 0 t1_xsells t = t1_thd (e1_exchoutput1 t) t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha) where { midprice = ((bestbid+bestask)/2) alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))) zeta     = 6}"
 
 
 
@@ -76,6 +76,8 @@ The lexeme contains all the tokens that will be used
 >                     f ('=':xs) a = (a,('=':xs))
 >                     f (']':xs) a = (a,(']':xs))
 >                     f (':':xs) a = (a,(':':xs))
+>                     f ('{':xs) a = (a,('{':xs))
+>                     f ('}':xs) a = (a,('}':xs))
 >                     f (x:xs)   a = f xs (a++[x])
 >
 
@@ -123,7 +125,7 @@ program is the parent type containing trees for the entire read in file
 
 >program ::= Program [definition] experiment
 
->definition ::= Name [char] expression | Function [char] [char] [argument] expression  ||first list agent name second list function name
+>definition ::= Name [char] expression | Function [char] [char] [argument] expression | InterVariable [char] expression  ||first list agent name second list function name
 
 
 here the arguments are the arguments to a fucntion call
@@ -152,12 +154,13 @@ this should be able to represent any function
 >expression::= Emptyexpression
 >              |Ifelse expression expression expression ||this is the if statement taking: if condition, true code, else code
 >              |Brackets expression
->              |List [argument] ||for []
+>              |List [expression] ||for []
 >              |Operation expression op expression
->              |Funint [char] [argument] ||internally defined functions
->              |Funext [char] [argument] ||externally defined functions
+>              |Funint [char] [argument] ||do i need internal arguments?
+>              |Funext [char] [char] [argument] ||externally defined functions
 >              |Varint [char]
->              |Varex [char]
+>              |Varex [char] [argument]
+>              |Constantvar [char]
 >              |Specialfunc specfunc expression
 >              |Number num
 >              |Where expression [definition]
@@ -172,8 +175,10 @@ this should be able to represent any function
 >      |Notequals
 >      |Lessequ
 >      |Greaterequ
+>      |Listadd
 
->specfunc::= Listhead|Listtail|Listadd
+
+>specfunc::= Listhead|Listtail
 
 
 
@@ -263,24 +268,246 @@ returns the expemrent run expression run_main
 >find_exprr3 (x:xs)    = find_exprr3 xs
 
 
+
+
+
+
 here the code body that was passed in the last section is turned into functions and returned as a list
 [definition]
 
->p_definations [] r = r
->p_definations xs r = p_definations b (r++[a])
->                     where
->                     (a, b) = find_def1 xs
-
-find_def returns the first defination in the list it is passed and the rest of the list
-
-
->find_def1 ((Idcons a):Opequal:xs) = Name a (p_expression xs)
 
 
 
->p_expression ((Idnum a):xs) = Number a
->p_expression ((Idvar a):xs) = Varex a
->p_expression ((Idintvar a):xs) = Varint a
+>get_definationslist [] defs = defs
+>get_definationslist ((Idcons x):Opequal:xs) defs = get_definationslist new_xs new_defs
+>where
+>(exp, new_xs) = get_expression xs Emptyexpression
+>def = Name x exp
+>new_defs = defs ++ [def]
+>get_definationslist ((Idfunc x y):xs) defs = get_definationslist new_xs new_defs
+>where
+>(arglist1, rest) = get_inputargs xs []
+>arglist2 = f arglist1 []
+>f [] a = a
+>f x a = f new_x new_a
+>where
+>(mid_a, new_x) = get_expression x Emptyexpression
+>new_a = a++[Argument mid_a]
+>(exp, new_xs) = get_expression rest Emptyexpression
+>def = Function x y arglist2 exp
+>new_defs = defs ++ [def]
+>get_definationslist ((Idintvar x):Opequal:xs) defs = get_definationslist new_xs new_defs
+>where
+>(exp, new_xs) = get_expression xs Emptyexpression
+>def = InterVariable x exp
+>new_defs = defs ++ [def]
+
+
+
+
+
+>get_expression x Emptyexpression = (new_a, new_xs), if istherewhere x
+>where
+>(bwhere, awhere) = wheresplitter x []
+>(inter_where, new_xs) = get_wherestate awhere []
+>def_list = get_definationslist inter_where []
+>(mid_a, none) = get_expression bwhere Emptyexpression
+>new_a = Where mid_a def_list
+>get_expression ((Idcomment x):xs) a = get_expression xs a
+>get_expression (Funhead:xs) Emptyexpression = (new_a, new_xs)
+>where
+>(mid_a, new_xs) = get_expression xs Emptyexpression
+>new_a = Specialfunc Listhead mid_a
+>get_expression (Funtail:xs) Emptyexpression = (new_a, new_xs)
+>where
+>(mid_a, new_xs) = get_expression xs Emptyexpression
+>new_a = Specialfunc Listtail mid_a
+>get_expression (LBra:xs) Emptyexpression = get_expression new_xs new_a
+>where
+>(listeditems, new_xs) = f xs []
+>f (LKet:xs) a = (a, xs)
+>f (Concomma:xs) a = f xs a
+>f x a = f nn_xs nnn_a
+>where
+>(mid_a, nn_xs) = get_expression x Emptyexpression
+>nnn_a = a++[mid_a]
+>new_a = List listeditems
+>get_expression (Stateif:xs) Emptyexpression = get_expression new_xs new_a
+>where
+>(if_con, if_yes, if_no, new_xs) = get_ifstatement xs
+>(true_con, rest1) = get_expression if_con Emptyexpression
+>(true_yes, rest2) = get_expression if_yes Emptyexpression
+>(true_no, rest3) = get_expression if_no Emptyexpression
+>new_a = (Ifelse true_con true_yes true_no)
+>get_expression (Bra:xs) Emptyexpression = get_expression new_xs new_a
+>where
+>(in_bra, new_xs) = get_bracket xs []
+>(exp_inbra, rest) = get_expression in_bra Emptyexpression
+>new_a = (Brackets (exp_inbra))
+>get_expression ((Idfunc x y):xs) Emptyexpression = get_expression new_xs new_a
+>where
+>(arg_list, new_xs) = get_function xs []
+>ex_arglist = f arg_list []
+>f [] m = m
+>f n m = f nn nnm
+>where
+>(nm, nn) = get_expression n Emptyexpression
+>nnm = m++[Argument nm]
+>new_a = (Funext x y ex_arglist)
+>get_expression ((Idnum x):xs) Emptyexpression = get_expression xs (Number x)
+>get_expression ((Idintvar x):xs) Emptyexpression = get_expression xs (Varint x)
+>get_expression ((Idvar x):xs) Emptyexpression = get_expression new_xs new_a
+>where
+>(arg_list, new_xs) = get_function xs []
+>ex_arglist = f arg_list []
+>f [] m = m
+>f n m = f nn nnm
+>where
+>(nm, nn) = get_expression n Emptyexpression
+>nnm = m++[Argument nm]
+>new_a = (Varex x ex_arglist)
+>get_expression ((Idcons x):xs) Emptyexpression = get_expression xs (Constantvar x)
+>get_expression x      a = (a, x), if end_test x
+>= get_expression new_x new_a, otherwise
+>where
+>(rest_a, new_x) = get_expression (tl x) Emptyexpression
+>new_a = (Operation a (match_op (hd x)) rest_a)
+
+
+
+>get_listeditems (LKet:xs) a = (a, xs)
+>get_listeditems (Concomma:xs) a = get_listeditems xs a
+>get_listeditems x a = get_listeditems new_xs nn
+>where
+>(new_a, new_xs) = get_expression x Emptyexpression
+>nn = a++[new_a]
+
+
+
+
+
+
+>get_bracket (Bra:xs) a = get_bracket new_xs new_a
+>where
+>(new_a, new_xs) = get_innerbracket xs (a++[Bra])
+>get_bracket (Ket:xs) a = (a, xs) ||((Brackets bra_internal), xs)
+>get_bracket (x:xs)   a = get_bracket xs (a++[x])
+
+
+>get_innerbracket (Bra:xs) a = get_innerbracket new_xs new_a
+>where
+>(new_a, new_xs) = get_innerbracket xs (a++[Bra])
+>get_innerbracket (Ket:xs) a = ((a++[Ket]), xs)
+>get_innerbracket (x:xs)   a = get_innerbracket xs (a++[x])
+
+
+
+>match_op Opplus = Plus
+>match_op Opminus = Minus
+>match_op Opmult = Multiply
+>match_op Opdivide = Divide
+>match_op Opless = Lessthan
+>match_op Opgreater = Greaterthan
+>match_op Opequal = Equals
+>match_op Opnotequal = Notequals
+>match_op Oplessequ = Lessequ
+>match_op Opgreaterequ = Greaterequ
+>match_op Opcons = Listadd
+
+
+>end_test [] = True
+>end_test (Opplus:xs) = False
+>end_test (Opminus:xs) = False
+>end_test (Opmult:xs) = False
+>end_test (Opdivide:xs) = False
+>end_test (Opless:xs) = False
+>end_test (Opgreater:xs) = False
+>end_test (Opequal:xs) = False
+>end_test (Opnotequal:xs) = False
+>end_test (Oplessequ:xs) = False
+>end_test (Opgreaterequ:xs) = False
+>end_test (Opcons:xs) = False
+>end_test x = True
+
+>istherewhere []           = False
+>istherewhere (Stateif:xs) = istherewhere new_xs
+>where
+>(con, yes, no, new_xs) = get_ifstatement xs
+>istherewhere (Opequal:xs) = False
+>istherewhere (Conwhere:xs) = True
+>istherewhere (x:xs) = istherewhere xs
+
+>wheresplitter (Conwhere:WBra:xs) a = (a, xs)
+>wheresplitter (x:xs) a = wheresplitter xs (a++[x])
+
+>get_function [] a = (a, [])
+>get_function (Opequal:xs) a = (new_a, new_xs)
+>where
+>(mid_xs, new_a) = get_argsfun (reverse_list a []) []
+>new_xs = mid_xs++[Opequal]++xs
+>get_function (x:xs) a = get_function xs (a++[x])
+
+
+>get_argsfun ((Idfunc x y):xs) a = ((Idfunc x y):a, (reverse_list xs []))
+>get_argsfun ((Idcons x):xs)   a = ((Idcons x):a, (reverse_list xs []))
+>get_argsfun (x:xs)            a = get_argsfun xs (a++[x])
+
+>reverse_list []     a = a
+>reverse_list (x:xs) a = reverse_list xs (x:a)
+
+>get_wherestate (WKet:xs) a = (a, xs)
+>get_wherestate (x:xs) a = get_wherestate xs (a++[x])
+
+>get_inputargs (Opequal:xs) a = (a, xs)
+>get_inputargs (x:xs)       a = get_inputargs xs (a++[x])
+
+>get_ifstatement x = (con, yes, no, rest)
+>where
+>(con, rest1) = get_bracket (tl x) []
+>(yes, rest2) = get_bracket (tl rest1) []
+>(no, rest)   = get_bracket (tl rest2) []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

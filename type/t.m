@@ -107,18 +107,18 @@ experimentrun::= Emptyrun|Exprun expression
 
 
 expression::= Emptyexpression
-              |Ifelse expression expression expression ||-
-              |Brackets expression ||-
+              |Ifelse expression expression expression
+              |Brackets expression
               |List [expression]
-              |Operation expression op expression ||-
+              |Operation expression op expression
               |Funint [char] [argument]
-              |Funext [char] [char] [argument] ||-
-              |Varint [char] ||-
-              |Varex [char] [argument] ||-
-              |Constantvar [char] ||-
+              |Funext [char] [char] [argument]
+              |Varint [char]
+              |Varex [char] [argument]
+              |Constantvar [char]
               |Specialfunc specfunc expression
-              |Number num ||-
-              |Where expression [definition] ||-
+              |Number num
+              |Where expression [definition]
 
 op::= Plus
       |Minus
@@ -130,16 +130,16 @@ op::= Plus
       |Notequals
       |Lessequ
       |Greaterequ
+      |Listadd
 
-specfunc::= Listhead|Listtail|Listadd
+specfunc::= Listhead|Listtail
 
-||doesnt deal with spect functions
 
 t = "c_Buy = 0 t0_sell t = myif (t < (var_selltime exp_n) ) then (t0_order 1000 0 0) else (t0_order c_Sell 0 0 0) t0_buy t = t0_order c_Buy 0 0 0 t1_xsells t = t1_thd (e1_exchoutput1 t) t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha) where { midprice = ((bestbid+bestask)/2) alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))) zeta     = 6}"
 
 t2 = "t0_sell t = myif (t < (var_selltime runnumber) ) then (0) else (0)"
 
-t3="t0_order a b c d = [a, b, c, d]"
+t3="t0_order a = [hd a]:[tl b] ||hi! \n"
 
 test = lex t3
 
@@ -172,7 +172,6 @@ get_definationslist ((Idintvar x):Opequal:xs) defs = get_definationslist new_xs 
 
 
 
-||hoow to deal with 2+(if true 5 6) if there is a plus it will split the code into two sections and run each independently so that both side of the plus return with no list left and then the rest of the total list is returned, put mutual recursion in get_expression so there is no mutual recursion
 
 
 get_expression x Emptyexpression = (new_a, new_xs), if istherewhere x
@@ -182,6 +181,15 @@ get_expression x Emptyexpression = (new_a, new_xs), if istherewhere x
                                    def_list = get_definationslist inter_where []
                                    (mid_a, none) = get_expression bwhere Emptyexpression
                                    new_a = Where mid_a def_list
+get_expression ((Idcomment x):xs) a = get_expression xs a
+get_expression (Funhead:xs) Emptyexpression = (new_a, new_xs)
+                                              where
+                                              (mid_a, new_xs) = get_expression xs Emptyexpression
+                                              new_a = Specialfunc Listhead mid_a
+get_expression (Funtail:xs) Emptyexpression = (new_a, new_xs)
+                                              where
+                                              (mid_a, new_xs) = get_expression xs Emptyexpression
+                                              new_a = Specialfunc Listtail mid_a
 get_expression (LBra:xs) Emptyexpression = get_expression new_xs new_a
                                            where
                                            (listeditems, new_xs) = f xs []
@@ -272,6 +280,7 @@ match_op Opequal = Equals
 match_op Opnotequal = Notequals
 match_op Oplessequ = Lessequ
 match_op Opgreaterequ = Greaterequ
+match_op Opcons = Listadd
 
 
 end_test [] = True
@@ -285,6 +294,7 @@ end_test (Opequal:xs) = False
 end_test (Opnotequal:xs) = False
 end_test (Oplessequ:xs) = False
 end_test (Opgreaterequ:xs) = False
+end_test (Opcons:xs) = False
 end_test x = True
 
 istherewhere []           = False

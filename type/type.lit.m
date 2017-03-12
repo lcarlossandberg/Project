@@ -528,11 +528,10 @@ a=var
 b=body
 c=run
 
->get_experment a b c = Experiment globvar Emptybody Emptyrun
+>get_experment a b c = Experiment globvar expermentBody Emptyrun
 >                      where
 >                      globvar = get_globalvarlist a []
-
-get_experimentbody b
+>                      expermentBody = get_experimentbody b []
 
 This turns the list of lexemes containing the global varibles into a list of the global varibles which are deifined in globalvariables
 

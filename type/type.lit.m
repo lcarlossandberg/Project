@@ -15,7 +15,15 @@ Here are the first couple of lines of the sugested input file, just for quick te
 >tester ="c_Buy = 0 t0_sell t = myif (t < (var_selltime exp_n) ) then (t0_order 1000 0 0) else (t0_order c_Sell 0 0 0) t0_buy t = t0_order c_Buy 0 0 0 t1_xsells t = t1_thd (e1_exchoutput1 t) t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha) where { midprice = ((bestbid+bestask)/2) alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))) zeta     = 6}"
 
 
+>t2 = "run_main = [main 0, main 1] var_selltime e = 10 var_t1startinv e = 2000 var_t2startinv e = 2000 main runnumber = myif (runnumber = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2]) else ([t2_inv 0, t2_inv 1, t2_inv 3]) where { c_Buy = 0 c_Sell = 1 t0_sell t = myif (t < (var_selltime runnumber) ) then (t0_order c_Sell 1000 0 0) else (t0_order c_Sell 0 0 0)"
 
+>t3="var_a = 10 var_b = 12 var_c = 13"
+
+>t4="var_selltime e = 10 var_t1startinv e = 2000 var_t2startinv e = 2000"
+
+>test = lex t4
+
+>r = get_globalvarlist (find_evar1 (lex t2) ) []
 
 
 Lexer
@@ -35,7 +43,7 @@ this shows the relations between the input langauge and the intermiate lexemes
 >lex ('<':xs)       = Opless:(lex xs)
 >lex ('~':'=':xs)   = Opnotequal:(lex xs)
 >lex ('=':xs)       = Opequal:(lex xs)
->lex ('|':'|':xs)   = (IDcomment (takewhile (~= '\n') xs)) : (lex (tl (dropwhile (~= '\n') xs)))
+>lex ('|':'|':xs)   = (Idcomment (takewhile (~= '\n') xs)) : (lex (tl (dropwhile (~= '\n') xs)))
 >lex ('[':xs)       = LBra:(lex xs)
 >lex (']':xs)       = LKet:(lex xs)
 >lex ('{':xs)       = WBra:(lex xs)
@@ -201,7 +209,7 @@ This turns the tokens into the parse tree type
 this section of code takes the input file and breaks it into two main sections, the body and the experemnt
 the experemnt is broken down further into the global varibles the experemnt body and the experemnt run
 
->parser x = Program (p_definations a []) (p_exeremint b c d)
+>parser x = Program (get_definationslist a []) (get_experment b c d)
 >           where
 >           a = find_code1 x
 >           b = find_evar1 x
@@ -278,30 +286,28 @@ this section breaks the code into a list of definations with their associated ex
 
 >get_definationslist::[lexeme]->[definition]->[definition]
 >get_definationslist [] defs = defs
->get_definationslist ((Idcons x):Opequal:xs) defs = get_definationslist new_xs new_defs
->                                                   where
->                                                   (exp, new_xs) = get_expression xs Emptyexpression
->                                                   def = Name x exp
->                                                   new_defs = defs ++ [def]
->get_definationslist ((Idfunc x y):xs)       defs = get_definationslist new_xs new_defs
->                                                   where
->                                                   (arglist1, rest) = get_inputargs xs []
->                                                   arglist2 = f arglist1 []
->                                                   f [] a = a
->                                                   f x a = f new_x new_a
->                                                           where
->                                                           (mid_a, new_x) = get_expression x Emptyexpression
->                                                           new_a = a++[Argument mid_a]
->                                                   (exp, new_xs) = get_expression rest Emptyexpression
->                                                   def = Function x y arglist2 exp
->                                                   new_defs = defs ++ [def]
->get_definationslist ((Idintvar x):Opequal:xs) defs = get_definationslist new_xs new_defs
->                                                   where
->                                                   (exp, new_xs) = get_expression xs Emptyexpression
->                                                   def = InterVariable x exp
->                                                   new_defs = defs ++ [def]
-
-
+>get_definationslist ((Idcons x):Opequal:xs)   defs = get_definationslist new_xs new_defs
+>                                                     where
+>                                                     (exp, new_xs) = get_expression xs Emptyexpression
+>                                                     def = Name x exp
+>                                                     new_defs = defs ++ [def]
+>get_definationslist ((Idfunc x y):xs)         defs = get_definationslist new_xs new_defs
+>                                                     where
+>                                                     (arglist1, rest) = get_inputargs xs []
+>                                                     arglist2 = f arglist1 []
+>                                                     f [] a = a
+>                                                     f x a = f new_x new_a
+>                                                             where
+>                                                             (mid_a, new_x) = get_expression x Emptyexpression
+>                                                             new_a = a++[Argument mid_a]
+>                                                     (exp, new_xs) = get_expression rest Emptyexpression
+>                                                     def = Function x y arglist2 exp
+>                                                     new_defs = defs ++ [def]
+>get_definationslist ((Idintvar x):Opequal:xs) defs = get_definationslist new_xs new_defs  ||this one is for definations inside where statemnts like where{ a=1}
+>                                                     where
+>                                                     (exp, new_xs) = get_expression xs Emptyexpression
+>                                                     def = InterVariable x exp
+>                                                     new_defs = defs ++ [def]
 
 
 
@@ -492,6 +498,41 @@ breaks and if statement into its section if, true, false and rest
 
 
 
+
+
+experiment::= Experiment [globalvariables] experimentbody experimentrun
+
+globalvariables::= Globalvariables [char] [argument] expression
+
+experimentbody::= Emptybody|Expbody expression
+
+experimentrun::= Emptyrun|Exprun expression
+
+a=var
+b=body
+c=run
+
+>get_experment a b c = Experiment globvar Emptybody Emptyrun
+>                      where
+>                      globvar = get_globalvarlist a []
+
+
+This turns the list of lexemes containing the global varibles into a list of the global varibles which are deifined in globalvariables
+
+>get_globalvarlist::[lexeme]->[globalvariables]->[globalvariables]
+>get_globalvarlist [] defs = defs
+>get_globalvarlist ((Idvar x):xs)              defs = get_globalvarlist new_xs new_defs ||this is used to get the global varible list
+>                                                     where
+>                                                     (arglist1, rest) = get_inputargs xs []
+>                                                     arglist2 = f arglist1 []
+>                                                     f [] a = a
+>                                                     f x a = f new_x new_a
+>                                                             where
+>                                                             (mid_a, new_x) = get_expression x Emptyexpression
+>                                                             new_a = a++[Argument mid_a]
+>                                                     (exp, new_xs) = get_expression rest Emptyexpression
+>                                                     def = Globalvariables x arglist2 exp
+>                                                     new_defs = defs ++ [def]
 
 
 

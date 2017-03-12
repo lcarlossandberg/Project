@@ -15,23 +15,27 @@ Here are the first couple of lines of the sugested input file, just for quick te
 >tester ="c_Buy = 0 t0_sell t = myif (t < (var_selltime exp_n) ) then (t0_order 1000 0 0) else (t0_order c_Sell 0 0 0) t0_buy t = t0_order c_Buy 0 0 0 t1_xsells t = t1_thd (e1_exchoutput1 t) t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha) where { midprice = ((bestbid+bestask)/2) alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))) zeta     = 6}"
 
 
->t2 = "run_main = [main 0, main 1] var_selltime e = 10 var_t1startinv e = 2000 var_t2startinv e = 2000 main runnumber = myif (runnumber = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2]) else ([t2_inv 0, t2_inv 1, t2_inv 3]) where { c_Buy = 0 c_Sell = 1 t0_sell t = myif (t < (var_selltime runnumber) ) then (t0_order c_Sell 1000 0 0) else (t0_order c_Sell 0 0 0)"
+>t2 = "run_main = [main 0, main 1] var_selltime e = 10 main runnumber = myif (runnumber = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2]) else ([t2_inv 0, t2_inv 1, t2_inv 3]) where { c_Buy = 0 c_Sell = 1 t0_sell t = myif (t < (var_selltime runnumber) ) then (t0_order c_Sell 1000 0 0) else (t0_order c_Sell 0 0 0)"
 
 >t3="var_a = 10 var_b = 12 var_c = 13"
 
 >t4="var_selltime e = 10 var_t1startinv e = 2000 var_t2startinv e = 2000"
 
->t5 = "main runnumber = myif (runnumber = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2]) else ([t2_inv 0, t2_inv 1, t2_inv 3]) where {c_Buy = 0}"
+>t5 = "run_main = [main 0, main 1] var_selltime e = 10"
 
 >t6 = "[1, 1, 2]"
 
 >t7 = "[t1_a 2, t_b 3 ,4]"
 
->t8= "[t1_inv 0, t1_inv 1, t1_inv 2]"
+>t8= "[main 0, main 1]"
 
->test = lex t5
 
->r = get_experimentbody (find_exprb1 test ) []
+>t9="run_main = main 0 var_selltime e = 10 main runnumber = t0_bid 0 where { c_Buy = 0 t0_bid t = t0_order c_bid 0 0 0 }"
+
+
+>test = lex t9
+
+>r = parser test
 
 >r2 = get_expression test Emptyexpression
 
@@ -188,6 +192,7 @@ this should be able to represent any function
 >              |Specialfunc specfunc expression
 >              |Number num
 >              |Where expression [definition]
+>              |Mainfunc [argument] ||this is the actual program itself
 
 >op::= Plus
 >      |Minus
@@ -277,7 +282,7 @@ find_exprb returns the body of what the expemetn is main ..
 returns the expemrent run expression run_main
 
 >find_exprr1 []           = []
->find_exprr1 (Idexrun:xs) = find_exprr2 xs []
+>find_exprr1 (Idexrun:Opequal:xs) = find_exprr2 xs []
 >find_exprr1 (x:xs)       = find_exprr1 xs
 
 >find_exprr2 []             b = b
@@ -378,6 +383,16 @@ this takes in the liast of lexemes and a pplace holder expression, normally Empt
 >                                                           (nm, nn) = get_expression n Emptyexpression
 >                                                           nnm = m++[Argument nm]
 >                                                   new_a = (Funext x y ex_arglist)
+>get_expression (Expr:xs)         Emptyexpression = get_expression new_xs new_a
+>                                                   where
+>                                                   (arg_list, new_xs) = get_function xs []
+>                                                   ex_arglist = f arg_list []
+>                                                   f [] m = m
+>                                                   f n m = f nn nnm
+>                                                           where
+>                                                           (nm, nn) = get_expression n Emptyexpression
+>                                                           nnm = m++[Argument nm]
+>                                                   new_a = (Mainfunc ex_arglist)
 >get_expression ((Idnum x):xs)    Emptyexpression = get_expression xs (Number x)
 >get_expression ((Idintvar x):xs) Emptyexpression = get_expression xs (Varint x)
 >get_expression ((Idvar x):xs)    Emptyexpression = get_expression new_xs new_a
@@ -528,10 +543,15 @@ a=var
 b=body
 c=run
 
->get_experment a b c = Experiment globvar expermentBody Emptyrun
+>get_experment a b c = Experiment globvar expermentBody expermentRun
 >                      where
 >                      globvar = get_globalvarlist a []
 >                      expermentBody = get_experimentbody b []
+>                      expermentRun = f c
+>                      f [] = Emptyrun
+>                      f x  = Exprun runcode
+>                             where
+>                             (runcode, none) = get_expression c Emptyexpression
 
 This turns the list of lexemes containing the global varibles into a list of the global varibles which are deifined in globalvariables
 

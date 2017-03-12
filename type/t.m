@@ -139,12 +139,23 @@ t = "c_Buy = 0 t0_sell t = myif (t < (var_selltime exp_n) ) then (t0_order 1000 
 
 t2 = "t0_sell t = myif (t < (var_selltime runnumber) ) then (0) else (0)"
 
-t3="t0_order a = [hd a]:[tl b] ||hi! \n"
+t3="t0_order a = [hd a]:[tl b]"
 
-test = lex t3
+t4="[1, 2,t_a 2] a"
+
+t5="t_a 2 3 4"
+
+t6="2 3 4, 5"
+
+t7="t_a 2] a"
+
+test = lex t4
 
 r = get_definationslist test []
 
+r2 = get_expression test Emptyexpression
+
+r3 = get_function (lex t6) []
 
 get_definationslist::[lexeme]->[definition]->[definition]
 get_definationslist [] defs = defs
@@ -194,6 +205,7 @@ get_expression (Funtail:xs) Emptyexpression = (new_a, new_xs)
 get_expression (LBra:xs) Emptyexpression = get_expression new_xs new_a
                                            where
                                            (listeditems, new_xs) = f xs []
+                                           f [] a = (a, [])
                                            f (LKet:xs) a = (a, xs)
                                            f (Concomma:xs) a = f xs a
                                            f x a = f nn_xs nnn_a
@@ -309,6 +321,8 @@ wheresplitter (x:xs) a = wheresplitter xs (a++[x])
 
 get_function::[lexeme]->[lexeme]->([lexeme],[lexeme])
 get_function [] a = (a, [])
+get_function (Concomma:xs) a = (a, xs) ||newnewnew
+get_function (LKet:xs) a = (a, (LKet:xs)) ||newnewnew
 get_function (Opequal:xs) a = (new_a, new_xs)
                               where
                               (mid_xs, new_a) = get_argsfun (reverse_list a []) []

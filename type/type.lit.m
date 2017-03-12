@@ -21,9 +21,23 @@ Here are the first couple of lines of the sugested input file, just for quick te
 
 >t4="var_selltime e = 10 var_t1startinv e = 2000 var_t2startinv e = 2000"
 
->test = lex t4
+>t5 = "main runnumber = myif (runnumber = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2]) else ([t2_inv 0, t2_inv 1, t2_inv 3]) where {c_Buy = 0}"
 
->r = get_globalvarlist (find_evar1 (lex t2) ) []
+>t6 = "[1, 1, 2]"
+
+>t7 = "[t1_a 2, t_b 3 ,4]"
+
+>t8= "[t1_inv 0, t1_inv 1, t1_inv 2]"
+
+>test = lex t5
+
+>r = get_experimentbody (find_exprb1 test ) []
+
+>r2 = get_expression test Emptyexpression
+
+
+
+
 
 
 Lexer
@@ -153,7 +167,7 @@ final experiment numbers to run
 
 >globalvariables::= Globalvariables [char] [argument] expression
 
->experimentbody::= Emptybody|Expbody expression
+>experimentbody::= Emptybody|Expbody [argument] expression
 
 >experimentrun::= Emptyrun|Exprun expression
 
@@ -211,9 +225,9 @@ the experemnt is broken down further into the global varibles the experemnt body
 
 >parser x = Program (get_definationslist a []) (get_experment b c d)
 >           where
->           a = find_code1 x
->           b = find_evar1 x
->           c = find_exprb1 x
+>           a = find_code1 x ||retuns lexeme between the {} in the master where
+>           b = find_evar1 x ||returns lexemes whose defination states with var_
+>           c = find_exprb1 x ||returns lexemes after main till where eg main a = a+2 where -> a=a+2
 >           d = find_exprr1 x
 
 find_code takes the input lexemes and returns just the body of the definations, the code inside the
@@ -459,12 +473,14 @@ breaks the code into the code before the the where statement (the function) and 
 returns the aguments the function and the rest of the code
 
 >get_function::[lexeme]->[lexeme]->([lexeme],[lexeme])
->get_function []           a = (a, [])
->get_function (Opequal:xs) a = (new_a, new_xs)
->                              where
->                              (mid_xs, new_a) = get_argsfun (reverse_list a []) []
->                              new_xs = mid_xs++[Opequal]++xs
->get_function (x:xs)       a = get_function xs (a++[x])
+>get_function []            a = (a, [])
+>get_function (Concomma:xs) a = (a, xs) ||newnewnew
+>get_function (LKet:xs) a = (a, (LKet:xs)) ||newnewnew
+>get_function (Opequal:xs)  a = (new_a, new_xs)
+>                               where
+>                               (mid_xs, new_a) = get_argsfun (reverse_list a []) []
+>                               new_xs = mid_xs++[Opequal]++xs
+>get_function (x:xs)        a = get_function xs (a++[x])
 
 
 >get_argsfun::[lexeme]->[lexeme]->([lexeme],[lexeme])
@@ -504,7 +520,7 @@ experiment::= Experiment [globalvariables] experimentbody experimentrun
 
 globalvariables::= Globalvariables [char] [argument] expression
 
-experimentbody::= Emptybody|Expbody expression
+experimentbody::= Emptybody|Expbody [argument] expression
 
 experimentrun::= Emptyrun|Exprun expression
 
@@ -516,6 +532,7 @@ c=run
 >                      where
 >                      globvar = get_globalvarlist a []
 
+get_experimentbody b
 
 This turns the list of lexemes containing the global varibles into a list of the global varibles which are deifined in globalvariables
 
@@ -536,15 +553,17 @@ This turns the list of lexemes containing the global varibles into a list of the
 
 
 
-
-
-
-
-
-
-
-
-
+>get_experimentbody []           []    = Emptybody
+>get_experimentbody (Opequal:xs) argsl = Expbody args body
+>                                        where
+>                                        (body, none) = get_expression xs Emptyexpression
+>                                        args = f argsl []
+>                                        f [] a = a
+>                                        f x  a = f n_x n_a
+>                                                 where
+>                                                 (mid_a, n_x) = get_expression x Emptyexpression
+>                                                 n_a = a++[Argument mid_a]
+>get_experimentbody (x:xs)       argsl = get_experimentbody xs (argsl++[x])
 
 
 

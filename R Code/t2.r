@@ -11,10 +11,12 @@ nodest <- read.csv("Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
 
 #this reads in the intial i j input file
 links1 <- read.csv("interbank.csv",head=FALSE, sep=",")
+#links1 <- read.csv("mynode.csv",head=FALSE, sep=",")
 
 
 #this works out how many nodes there are
 numNodes = length(links1$V1)
+numNodes
 
 #this puts the nodes in matrix that can be used
 nodes1 <- 1:numNodes
@@ -73,15 +75,28 @@ library('igraph')
 net <- graph_from_data_frame(d=links, vertices=nodes, directed=T)
 
 deg <- degree(net, mode="all")
-V(net)$size <- deg*10           #this changes the node size depending on the numeber of links
+V(net)$size <- deg/100           #this changes the node size depending on the numeber of links
 
-E(net)$width <- E(net)$weight*2  #this changes the link thickness depending on the weight
+#E(net)$width <- E(net)$weight #this changes the link thickness depending on the weight
 
-plot(net, edge.arrow.size=.4)
-
-
+#plot(net, edge.arrow.size=.4)
 
 
+#deletes all links with weight less then the mean
+links_x <- as.data.frame(links)
+cut.off <- mean(links_x$weight)
+net.sp <- delete_edges(net, E(net)[weight<cut.off])
+
+
+#this deletes all nodes with connects less then the mean
+#net.sp <- delete_vertices(net, V(net)[deg<mean(deg)])
+#plot(net.sp, layout = layout_with_mds)
+
+
+
+
+
+plot(net.sp, edge.arrow.size=.4,vertex.label=NA, layout = layout_with_fr)
 
 
 

@@ -1,11 +1,3 @@
-
-linkst <- read.csv("Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
-
-nodest <- read.csv("Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
-
-
-
-
 #this code is to convert a i j matrix containing weigths into a
 #matrix of to from weight and a list of all links (nodes and links matrix)
 

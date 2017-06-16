@@ -12,33 +12,11 @@ This files contents are then saved in the type format to be proccessed into Inte
 
 Here are the first couple of lines of the sugested input file, just for quick testing of the code
 
->tester ="c_Buy = 0 t0_sell t = myif (t < (var_selltime exp_n) ) then (t0_order 1000 0 0) else (t0_order c_Sell 0 0 0) t0_buy t = t0_order c_Buy 0 0 0 t1_xsells t = t1_thd (e1_exchoutput1 t) t1_bidprice bestbid bestask inv = t1_max 0 ((midprice-1)-alpha) where { midprice = ((bestbid+bestask)/2) alpha    = zeta*(1-(((var_ul exp_n)-1-inv)/((var_ul exp_n)-(var_ll exp_n)-2))) zeta     = 6}"
 
 
->t2 = "run_main = [main 0, main 1] var_selltime e = 10 main runnumber = myif (runnumber = 1) then ([t1_inv 0, t1_inv 1, t1_inv 2]) else ([t2_inv 0, t2_inv 1, t2_inv 3]) where { c_Buy = 0 c_Sell = 1 t0_sell t = myif (t < (var_selltime runnumber) ) then (t0_order c_Sell 1000 0 0) else (t0_order c_Sell 0 0 0)"
+>simple_example = "run_main = [main 0, main 1] var_init runnumber = myif (runnumber=0) then (10) else (20) main runnumber = [i_f1 1, i_f1 2, i_f1 3] where { i_f1 t = (i_f2 t) + (j_f1 t 1) i_f2 t = myif (t<12) then (10) else (20) j_f1 t a = myif (a<2) then (9) else (j_f2 t) j_f2 t = fun t 3 where{ fun t a = (k_f1 a)+t} k_f1 t = t + (var_init runnumber) }"
 
->t3="var_a = 10 var_b = 12 var_c = 13"
-
->t4="var_selltime e = 10 var_t1startinv e = 2000 var_t2startinv e = 2000"
-
->t5 = "run_main = [main 0, main 1] var_selltime e = 10"
-
->t6 = "[1, 1, 2]"
-
->t7 = "[t1_a 2, t_b 3 ,4]"
-
->t8= "[main 0, main 1]"
-
-
->t9="run_main = main 0 var_selltime e = 10 main runnumber = t0_bid 0 where { c_Buy = 0 t0_bid t = t0_order c_bid 0 0 0 }"
-
-
->test = lex t9
-
->r = parser test
-
->r2 = get_expression test Emptyexpression
-
+>simple_test = parser (lex simple_example)
 
 
 

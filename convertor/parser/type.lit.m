@@ -14,11 +14,15 @@ Here are the first couple of lines of the sugested input file, just for quick te
 
 
 
->simple_example = "run_main = [main 0, main 1] var_init runnumber = myif (runnumber=0) then (10) else (20) main runnumber = [i_f1 1, i_f1 2, i_f1 3] where { i_f1 t = (i_f2 t) + (j_f1 t 1) i_f2 t = myif (t<12) then (10) else (20) j_f1 t a = myif (a<2) then (9) else (j_f2 t) j_f2 t = fun t 3 where{ fun t a = (k_f1 a)+t} k_f1 t = t + (var_init runnumber) }"
+>simple_example = read "inv_code.m"
+
+>long_example = read "Input_frompaper.m"
+
+"run_main = [main 0, main 1] var_init runnumber = myif (runnumber=0) then (10) else (20) main runnumber = [i_f1 1, i_f1 2, i_f1 3] where { i_f1 t = (i_f2 t) + (j_f1 t 1) i_f2 t = myif (t<12) then (10) else (20) j_f1 t a = myif (a<2) then (9) else (j_f2 t) j_f2 t = fun t 3 where{ fun t a = (k_f1 a)+t} k_f1 t = t + (var_init runnumber) }"
 
 >simple_test = parser (lex simple_example)
 
-
+>long_test = parser (lex long_example)
 
 
 
@@ -51,6 +55,7 @@ this shows the relations between the input langauge and the intermiate lexemes
 >lex ('*':xs)       = Opmult:(lex xs)
 >lex ('/':xs)       = Opdivide:(lex xs)
 >lex (' ':xs)       = lex xs
+>lex ('\n':xs)      = lex xs
 >lex (':':xs)       = Opcons:(lex xs)
 >lex (',':xs)       = Concomma:(lex xs)
 >lex (x:xs)         = (Idnum (numval a)): (lex b), if (isnumber a)
@@ -83,6 +88,7 @@ this shows the relations between the input langauge and the intermiate lexemes
 >                     f (':':xs) a = (a,(':':xs))
 >                     f ('{':xs) a = (a,('{':xs))
 >                     f ('}':xs) a = (a,('}':xs))
+>                     f ('\n':xs) a = (a,xs)
 >                     f (x:xs)   a = f xs (a++[x])
 >
 
@@ -215,13 +221,12 @@ the experemnt is broken down further into the global varibles the experemnt body
 
 find_code takes the input lexemes and returns just the body of the definations, the code inside the
 experements where block.
-find_code1 finds where the body of the code starts and passes this to find_code2.
 
 >find_code1 []                              = []
 >find_code1 (Conwhere:WBra:(Idfunc a b):xs) = find_code2 ((Idfunc a b):xs) []
 >find_code1 (Conwhere:WBra:(Idcons a):xs)   = find_code2 ((Idcons a):xs) []
 >find_code1 (x:xs)                          = find_code1 xs
-
+             
 >find_code2 (WBra:xs) b = find_code2 x y
 >                         where
 >                         (x, y) = find_code3 (xs) (b++[WBra])

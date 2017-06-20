@@ -725,32 +725,66 @@ ilo_nlf (new list function) takes a function that contains time and turns it int
 >ilo_nlf (Function a b c d) = Function a b na_nt ne_il
 >                             where
 >                             na_nt = ilo_na c []           ||(new arguments no time)
->                             ne_il = ilo_ne d              ||(new expression infinite list)
+>                             ne_il = ilo_ne c d            ||(new expression infinite list)
 
 
 ilo_na (new arguments) takes the current argument list and returns it after removing t
 
 
 >ilo_na []                           new_c = new_c
->ilo_na ((Argument (Varint "t")):xs) new_c = ilo_na xs (new_c++[(Argument (Varint "t"))]) ||new_c
+>ilo_na ((Argument (Varint "t")):xs) new_c = ilo_na xs new_c
 >ilo_na (x:xs)                       new_c = ilo_na xs (new_c++[x])
 
 
 ilo_ne (new expression) takes the current expression and rerutns the infinite list loop expression in the form shown Here
 
-j_f1_chris a = createlist 0 a
+j_f1_chris a = _createlist 0 a
                where
-               createlist t a = (sub_j_f1 t a) : (createlist list (t+1) a)
-               sub_j_f1 t a = myif (a<2) then (9) else (j_f2 t)
+               _createlist t a = (_sub_j_f1 t a) : (_createlist list (t+1) a)
+               _sub_j_f1 t a = myif (a<2) then (9) else (j_f2 t)
 
 
 
->ilo_ne d = d
+>ilo_ne c d = Where (ilo_le c) (ilo_df c d)
+
+
+ilo_le (list expression) returns the new expression
+_createlist 0 ++ arguments
+
+
+>ilo_le c = Funint "createlist" (ilo_nc c [])
+
+
+ilo_nc (new c) edits the arguments so that t now equals 0
+
+>ilo_nc []                           list = list
+>ilo_nc ((Argument (Varint "t")):xs) list = ilo_nc xs (list++[(Argument (Number 0))])
+>ilo_nc (x:xs)                       list = ilo_nc xs (list++[x])
+
+
+ilo_df (definition of function) creates a definition list containing two definition, one for createlist and the other containing the logic of the unedited function
+               
+>ilo_df c d = [(IntFunction "createlist" c (ilo_cll c)), (IntFunction "sublogic" c d)]
+
+
+ilo_cll (create list logic) this returns the logic of the create list
+
+>ilo_cll c = Operation (Funint "sublogic" c) (Listadd) (Funint "createlist" (ilo_tpo c []))
+
+
+ilo_tpo (t plus one) takes the input variables and returns them but has t as t+1
+
+
+
+>ilo_tpo []                           list = list
+>ilo_tpo ((Argument (Varint "t")):xs) list = ilo_tpo xs (list++[(Argument (Operation (Varint "t") (Plus) (Number 1)))])
+>ilo_tpo (x:xs)                       list = ilo_tpo xs (list++[x])
 
 
 
 
->newt = (ilo (parser (lex simple_example)))=(parser (lex simple_example))
+
+>newt = (ilo (parser (lex simple_example))) ||=(parser (lex simple_example))
 
 
 

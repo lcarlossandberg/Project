@@ -5,7 +5,7 @@
 
 
 
->definition ::= Name [char] expression | Function [char] [char] [argument] expression | InterVariable [char] expression
+>definition ::= Name [char] expression | Function [char] [char] [argument] expression | InterVariable [char] expression |  IntFunction [char] [argument] expression
 
 
 

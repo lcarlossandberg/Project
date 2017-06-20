@@ -20,7 +20,7 @@ Here are the first couple of lines of the sugested input file, just for quick te
 
 "run_main = [main 0, main 1] var_init runnumber = myif (runnumber=0) then (10) else (20) main runnumber = [i_f1 1, i_f1 2, i_f1 3] where { i_f1 t = (i_f2 t) + (j_f1 t 1) i_f2 t = myif (t<12) then (10) else (20) j_f1 t a = myif (a<2) then (9) else (j_f2 t) j_f2 t = fun t 3 where{ fun t a = (k_f1 a)+t} k_f1 t = t + (var_init runnumber) }"
 
->simple_test = parser (lex simple_example)
+>pt = parser (lex simple_example)
 
 >long_test = parser (lex long_example)
 
@@ -30,8 +30,43 @@ Lexer
 Reads in the file and converts it to tokens
 
 The lexeme contains all the tokens that will be used
+LBra
+LKet
+Bra
+Ket
+WBra
+WKet
+Opequal
+Opplus
+Opminus
+Opmult
+Opdivide
+Opgreater
+Opless
+Opbang
+Opcons
+Opnotequal
+Oplessequ
+Opgreaterequ
+Funhead
+Funtail
+Concomma
+Conwhere
+Idcons [char]    c_name
+Idfunc [char] [char] agent_name
+Idintvar [char] any varible eg a b c d etc
+Idvar [char] var_name
+Idnum num 1,2,3,4..
+Idexrun run_
+Idintfunc [char] _name (an internal function where it is defined within a where statement and used in the corresponding function)
+Idcomment [char]
+Expr
+Main
+Stateif
 
->lexeme::= Idcons [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Funhead|Funtail|Opcons|Concomma|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif|Idcomment [char]|WBra|WKet
+
+
+>lexeme::= Idcons [char]|Opequal|LBra|LKet|Bra|Ket|Opplus|Opminus|Opmult|Opdivide|Opgreater|Opless|Opbang|Funhead|Funtail|Opcons|Concomma|Conwhere|Idfunc [char] [char]|Idintvar [char]|Idvar [char]|Idnum num|Expr|Opnotequal|Oplessequ|Opgreaterequ|Idexrun|Main|Stateif|Idcomment [char]|WBra|WKet|Idintfunc [char]
 
 this shows the relations between the input langauge and the intermiate lexemes
 
@@ -54,11 +89,13 @@ this shows the relations between the input langauge and the intermiate lexemes
 >lex ('-':xs)       = Opminus:(lex xs)
 >lex ('*':xs)       = Opmult:(lex xs)
 >lex ('/':xs)       = Opdivide:(lex xs)
+>lex ('!':xs)       = Opbang:(lex xs)
 >lex (' ':xs)       = lex xs
 >lex ('\n':xs)      = lex xs
 >lex (':':xs)       = Opcons:(lex xs)
 >lex (',':xs)       = Concomma:(lex xs)
 >lex (x:xs)         = (Idnum (numval a)): (lex b), if (isnumber a)
+>                   = (Idintfunc (tl a)):(lex b), if (hd a) = '_'
 >                   = Funhead:(lex b), if a=['h','d']
 >                   = Funtail:(lex b), if a=['t','l']
 >                   = Conwhere:(lex b), if a=['w','h','e','r','e']
@@ -138,7 +175,7 @@ program is the parent type containing trees for the entire read in file
 
 definations organises the code, with the main functions either being a function or a type constant or internal varbile placed inside a where block
 
->definition ::= Name [char] expression | Function [char] [char] [argument] expression | InterVariable [char] expression
+>definition ::= Name [char] expression | Function [char] [char] [argument] expression | InterVariable [char] expression | IntFunction [char] [argument] expression
 
 here the arguments are the arguments to a fucntion call
 
@@ -168,7 +205,7 @@ this should be able to represent any function
 >              |Brackets expression
 >              |List [expression] ||for []
 >              |Operation expression op expression
->              |Funint [char] [argument] ||do i need internal arguments?
+>              |Funint [char] [argument] ||for internal functions
 >              |Funext [char] [char] [argument] ||externally defined functions
 >              |Varint [char]
 >              |Varex [char] [argument]
@@ -189,6 +226,7 @@ this should be able to represent any function
 >      |Lessequ
 >      |Greaterequ
 >      |Listadd
+>      |Bang
 
 
 >specfunc::= Listhead|Listtail
@@ -305,6 +343,18 @@ this section breaks the code into a list of definations with their associated ex
 >                                                     (exp, new_xs) = get_expression rest Emptyexpression
 >                                                     def = Function x y arglist2 exp
 >                                                     new_defs = defs ++ [def]
+>get_definationslist ((Idintfunc x ):xs)       defs = get_definationslist new_xs new_defs
+>                                                     where
+>                                                     (arglist1, rest) = get_inputargs xs []
+>                                                     arglist2 = f arglist1 []
+>                                                     f [] a = a
+>                                                     f x a = f new_x new_a
+>                                                             where
+>                                                             (mid_a, new_x) = get_expression x Emptyexpression
+>                                                             new_a = a++[Argument mid_a]
+>                                                     (exp, new_xs) = get_expression rest Emptyexpression
+>                                                     def = IntFunction x arglist2 exp
+>                                                     new_defs = defs ++ [def]
 >get_definationslist ((Idintvar x):Opequal:xs) defs = get_definationslist new_xs new_defs  ||this one is for definations inside where statemnts like where{ a=1}
 >                                                     where
 >                                                     (exp, new_xs) = get_expression xs Emptyexpression
@@ -366,6 +416,16 @@ this takes in the liast of lexemes and a pplace holder expression, normally Empt
 >                                                           (nm, nn) = get_expression n Emptyexpression
 >                                                           nnm = m++[Argument nm]
 >                                                   new_a = (Funext x y ex_arglist)
+>get_expression ((Idintfunc x ):xs) Emptyexpression = get_expression new_xs new_a                             ||shortcut
+>                                                     where
+>                                                     (arg_list, new_xs) = get_function xs []
+>                                                     ex_arglist = f arg_list []
+>                                                     f [] m = m
+>                                                     f n m = f nn nnm
+>                                                             where
+>                                                             (nm, nn) = get_expression n Emptyexpression
+>                                                             nnm = m++[Argument nm]
+>                                                     new_a = (Funint x ex_arglist)
 >get_expression (Expr:xs)         Emptyexpression = get_expression new_xs new_a
 >                                                   where
 >                                                   (arg_list, new_xs) = get_function xs []
@@ -429,6 +489,7 @@ returns the new type constrastures sperific for the operactiosn from the lexeme
 >match_op Oplessequ    = Lessequ
 >match_op Opgreaterequ = Greaterequ
 >match_op Opcons       = Listadd
+>match_op Opbang       = Bang
 
 
 checks if the expression has eneded, the only times it has not ended is is this expression is connected to another through a operactior
@@ -446,6 +507,7 @@ checks if the expression has eneded, the only times it has not ended is is this 
 >end_test (Oplessequ:xs)    = False
 >end_test (Opgreaterequ:xs) = False
 >end_test (Opcons:xs)       = False
+>end_test (Opbang:xs)       = False
 >end_test x                 = True
 
 
@@ -581,6 +643,8 @@ This turns the list of lexemes containing the global varibles into a list of the
 
 
 
+Convertor
+This will turn the now parsed program into one comparable with Interdyne
 
 
 
@@ -594,6 +658,125 @@ This turns the list of lexemes containing the global varibles into a list of the
 
 
 
+
+Infinite List output
+Here the program will be transformed so that all functions that depend on time will be written with an infinite list output and no time parameter
+
+j_f1 t a = myif (a<2) then (9) else (j_f2 t)
+
+will become
+
+j_f1 a = [sub_j_f1 t a | t<-[0..]]
+         where
+         sub_j_f1 t a = myif (a<2) then (9) else (j_f2 t)
+
+which can be written as a loop in the form
+
+j_f1_chris a = myloop 0 a
+               where
+               createlist t a = (sub_j_f1 t a) : (createlist list (t+1) a)
+               sub_j_f1 t a = myif (a<2) then (9) else (j_f2 t)
+
+
+This creates a sort of parent eqution that outputs the child (orginal) equations output in the correct form
+
+All time dependent functions will be turned into this form
+
+
+ilo takes the program type and then returns a new program type which reperesents the modified program
+
+>ilo::program->program
+>ilo (Program a b) = Program c b
+>                    where c = ilo_ndl a []
+
+
+ilo_ndl (new defination list), takes the defination list and returns the edited defination list
+
+
+>ilo_ndl []     list = list
+>ilo_ndl (x:xs) list = ilo_ndl xs (list++[edit_x])
+>                      where
+>                      edit_x = ilo_ndi x
+
+
+ilo_ndi (new difintion item), takes an item from the defination list and then either returns that item as is if it is time idepenent or returns the edited list version if it is time dependent.
+A time dependent function will have the Variable t as an input parameter
+
+
+>ilo_ndi (Name a b)          = Name a b
+>ilo_ndi (InterVariable a b) = InterVariable a b
+>ilo_ndi (Function a b c d)  = edited_function
+>                              where
+>                              edited_function = ilo_nlf (Function a b c d), if (ilo_ct c)
+>                                              = (Function a b c d), otherwise
+
+
+ilo_ct (contains time) takes the arguments of the function and checks to see if time (t) is present, if it is this returns true and the function will hence be changed accordingly
+
+>ilo_ct []                           = False
+>ilo_ct ((Argument (Varint "t")):xs) = True
+>ilo_ct (x:xs)                       = ilo_ct xs
+
+
+
+ilo_nlf (new list function) takes a function that contains time and turns it into a fucntion that does not take time as an input and as an infite list output
+
+
+>ilo_nlf (Function a b c d) = Function a b na_nt ne_il
+>                             where
+>                             na_nt = ilo_na c []           ||(new arguments no time)
+>                             ne_il = ilo_ne d              ||(new expression infinite list)
+
+
+ilo_na (new arguments) takes the current argument list and returns it after removing t
+
+
+>ilo_na []                           new_c = new_c
+>ilo_na ((Argument (Varint "t")):xs) new_c = ilo_na xs (new_c++[(Argument (Varint "t"))]) ||new_c
+>ilo_na (x:xs)                       new_c = ilo_na xs (new_c++[x])
+
+
+ilo_ne (new expression) takes the current expression and rerutns the infinite list loop expression in the form shown Here
+
+j_f1_chris a = createlist 0 a
+               where
+               createlist t a = (sub_j_f1 t a) : (createlist list (t+1) a)
+               sub_j_f1 t a = myif (a<2) then (9) else (j_f2 t)
+
+
+
+>ilo_ne d = d
+
+
+
+
+>newt = (ilo (parser (lex simple_example)))=(parser (lex simple_example))
+
+
+
+
+Here the requests for a function that now outputs a list has to be edited
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+This is not working code
+I will use this code to help make a print statement when I have time
 
 printprog :: prog -> [char]
 printprog (Prog a b) = "{\n" ++ (printdefs a) ++ "\n}\nIN\n" ++ (printexpr b)

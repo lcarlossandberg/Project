@@ -25,9 +25,9 @@ i_f2 t = myif (t<12) then (10) else (20)
     
 j_f1 t a = myif (a<2) then (9) else (j_f2 t)
     
-j_f2 t = j_fun t 3
+j_f2 t = _fun t 3
          where{
-         j_fun t a = (k_f1 a)+t}
+         _fun t a = (k_f1 a)+t}
     
     
     

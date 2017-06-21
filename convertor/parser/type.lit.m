@@ -645,9 +645,10 @@ This turns the list of lexemes containing the global varibles into a list of the
 
 Convertor
 This will turn the now parsed program into one comparable with Interdyne
+This is called con_itl (Convertor infinite time lists)
 
 
-
+>con_itl a = ili (ilo a)
 
 
 
@@ -683,7 +684,7 @@ This creates a sort of parent eqution that outputs the child (orginal) equations
 All time dependent functions will be turned into this form
 
 
-ilo takes the program type and then returns a new program type which reperesents the modified program
+ilo (infinite list output) takes the program type and then returns a new program type which reperesents the modified program
 
 >ilo::program->program
 >ilo (Program a b) = Program c b
@@ -699,7 +700,7 @@ ilo_ndl (new defination list), takes the defination list and returns the edited 
 >                      edit_x = ilo_ndi x
 
 
-ilo_ndi (new difintion item), takes an item from the defination list and then either returns that item as is if it is time idepenent or returns the edited list version if it is time dependent.
+ilo_ndi (new definition item), takes each item in the definition list, if its a c_ or a variable it returns it as is, if its a agent_ returns a list output version. This is done for both time dependent and time indepent agent_
 A time dependent function will have the Variable t as an input parameter
 
 
@@ -707,8 +708,9 @@ A time dependent function will have the Variable t as an input parameter
 >ilo_ndi (InterVariable a b) = InterVariable a b
 >ilo_ndi (Function a b c d)  = edited_function
 >                              where
->                              edited_function = ilo_nlf (Function a b c d), if (ilo_ct c)
->                                              = (Function a b c d), otherwise
+>                              edited_function = ilo_nlf (Function a b c d), if (ilo_ct c)    ||deals with time dependent Functions
+>                                              = ilo_nlfnt (Function a b c d), otherwise      ||deals with time indepent functions
+
 
 
 ilo_ct (contains time) takes the arguments of the function and checks to see if time (t) is present, if it is this returns true and the function will hence be changed accordingly
@@ -782,14 +784,149 @@ ilo_tpo (t plus one) takes the input variables and returns them but has t as t+1
 
 
 
+ilo_nlfnt (new list Function no time) takes a time indepent fucntion and returns a fucntion that lists that functions output through out time (will be the same at every time step)
+
+>ilo_nlfnt(Function a b c d) = Function a b c ne_il  ||there are no new arguments as time is already not present
+>                              where
+>                              ne_il = ilo_nent c d
 
 
->newt = (ilo (parser (lex simple_example))) ||=(parser (lex simple_example))
+
+
+ilo_nent (new expression no time)  takes the current expression and rerutns the infinite list loop expression
+j_f1_chris a = _createlist 0 a
+               where
+               _createlist t a = (_sub_j_f1 t a) : (_createlist list (t+1) a)
+               _sub_j_f1 t a = myif (a<2) then (9) else (20)
+
+t is added to the expression so that indexing can be done latter
+
+
+
+>ilo_nent c d = Where (ilo_wrap) (ilo_df ((Argument (Varint "t")):c) d) ||t is added to the arguments list, this is unused at the moment
+>               where
+>               ilo_wrap = Funint "createlist" ((Argument (Number 0)):c)
+
+
+
+
+
 
 
 
 
 Here the requests for a function that now outputs a list has to be edited
+a function would previesly call another by used f 1 this no longer will work, instead since the output of this function is now for all time starting at t=0, a call for t=1 will be f!1
+However most functions will call dependening upon their own time step t (this may not be currently avable to every function but will be once a wrapper function is written and starts recving its time step) therefor for fucntions that are not time dependent the call will be f!t
+
+
+
+ili (infinite list input) this takes the type program and returns a new value of type program, in this new value only the call to  functions has been altered
+
+>ili (Program a b) = Program (ili_ed a []) (ili_eeb b)
+
+
+ili_ed (edited definitions) this returns a list of the edited definitions
+
+>ili_ed [] new_dl = new_dl
+>ili_ed (x:xs) new_dl = ili_ed xs (new_dl++[new_x])
+>                       where
+>                       new_x = ili_cfc x
+
+
+ili_cfc (change function calls) looks at each fucntions expression and changes any calls to fucntions
+
+
+>ili_cfc (Name a b)          = Name a b
+>ili_cfc (InterVariable a b) = InterVariable a b
+>ili_cfc (Function a b c d)  = Function a b c new_d
+>                              where
+>                              new_d = ili_cfd d
+
+
+
+ili_cfd (change function definition) this changes a fucntins expression so that it now calls infinite lists correctly
+All functions are now in where blocks
+the function body is in the list of definitions
+
+>ili_cfd (Where a b) = Where a (ili_cfwb b)
+
+ili_cfwb (change function where block), this changes the expression in the where block
+It is known that this list will only containt two items the createlist function and the sublogic function
+it is the sublogic function that needs to be edited
+
+>ili_cfwb ((IntFunction "createlist" a b):(IntFunction "sublogic" c d):xs) = [(IntFunction "createlist" a b), (IntFunction "sublogic" c new_d)]
+>                                                                            where
+>                                                                            new_d = ili_ce d
+
+
+ili_ce (change expression) changes the actual expression
+
+
+>ili_ce (Emptyexpression) = Emptyexpression
+>ili_ce (Ifelse a b c)    = Ifelse (ili_ce a) (ili_ce b) (ili_ce c)
+>ili_ce (Brackets d)      = Brackets (ili_ce d)
+>ili_ce (List e)          = List (ili_la e [])
+>ili_ce (Operation f g h) = Operation (ili_ce f) g (ili_ce h)
+>ili_ce (Funint i j)      = Funint i (ili_aa j [])
+>ili_ce (Varint n)        = Varint n
+>ili_ce (Varex o p)       = Varex o (ili_aa p [])
+>ili_ce (Constantvar q)   = Constantvar q
+>ili_ce (Specialfunc r s) = Specialfunc r (ili_ce s)
+>ili_ce (Number t)        = Number t
+>ili_ce (Where u v)       = Where (ili_ce u) (ili_da v [])
+>ili_ce (Funext k l m)    = ili_nif k l m
+
+
+
+ili_la (list apply), applies ili_ce to every element in a list and then retuns the new list
+
+>ili_la []     new_list = new_list
+>ili_la (x:xs) new_list = ili_la xs (new_list++[(ili_ce x)])
+
+
+ili_aa (argument apply), applies ili_ce to every expression in a list of arguments
+
+>ili_aa []                new_list = new_list
+>ili_aa ((Argument x):xs) new_list = ili_aa xs (new_list++[new_x])
+>                                    where
+>                                    new_x = Argument (ili_ce x)
+
+
+ili_da (definitions apply), applies ili_ce to every expression of every definition in the list of definitions
+
+>ili_da []     new_list = new_list
+>ili_da (x:xs) new_list = ili_da xs (new_list++[new_x])
+>                         where
+>                         new_x = ili_dsa x
+
+ili_dsa (definition sub apply), takes the definition and returns the definition with an edited expression
+
+>ili_dsa (Name a b)          = Name a (ili_ce b)
+>ili_dsa (Function a b c d)  = Function a b (ili_aa c []) (ili_ce d)
+>ili_dsa (InterVariable a b) = InterVariable a (ili_ce b)
+>ili_dsa (IntFunction a b c) = IntFunction a (ili_aa b []) (ili_ce c)
+
+
+
+ili_nif (new idexed function) this changes how functions are called so that they are idex as lists with time, this is done by noting that the first argument of any function is time, therefore can remove this first argument and use it to idex
+
+Funext [char] [char] [argument]
+
+goes to
+
+Operation (Funext [char] [char] [new_arguments]) Bang (Varint (t what ever is in the old argument t)) or (Varint 't')
+
+>ili_nif k l m = Operation (Funext k l (ili_new_m m)) (Bang) (ili_indexer m)
+
+
+ili_new_m retuns the arument list Minus the time argument, this is done knowing that the first argument is time
+
+>ili_new_m (x:xs) = xs
+
+ili_indexer, this retuns the  expression of the first agrument from the argument list, this is time and hence will be used for indexing
+
+>ili_indexer ((Argument x):xs) = x
 
 
 
@@ -802,6 +939,28 @@ Here the requests for a function that now outputs a list has to be edited
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+ili_eeb (edited experemnt body)
+
+>ili_eeb b = b
+
+
+
+
+
+
+
+>newt = (con_itl (parser (lex simple_example))) = (ilo (parser (lex simple_example)))
 
 
 

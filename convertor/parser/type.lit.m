@@ -930,29 +930,16 @@ ili_indexer, this retuns the  expression of the first agrument from the argument
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ili_eeb (edited experemnt body)
 
->ili_eeb b = b
+>ili_eeb (Experiment a b c) = Experiment a new_b c
+>                             where
+>                             new_b = ili_ceb b
+
+ili_ceb (change Experiment body) changes the expression in the Experiment body
+
+>ili_ceb (Emptybody)   = Emptybody
+>ili_ceb (Expbody a b) = Expbody a (ili_ce b)
 
 
 
@@ -960,7 +947,130 @@ ili_eeb (edited experemnt body)
 
 
 
->newt = (con_itl (parser (lex simple_example))) = (ilo (parser (lex simple_example)))
+
+
+
+
+
+
+
+
+
+
+
+
+Here the wrapper function is created which groups together a agent and produces a infite list contain a finite list of the values at each time step of the internal functions, the functions also have to be changed
+
+agent_Wrapper = _createlistw 0
+                where
+                _createlistw t = ([agent_f1!t, agent_f2!t, ..]):(_createlistw (t+1))
+                agent_f1
+                agent_f2
+                agent_f3
+
+
+
+
+
+here the agent_Wrapper will be added using aw_cw (agent wrapper create wrapper )
+
+>aw_cw (Program a b) = Program new_a b
+>                      where
+>                      new_a = aw_gf a []
+
+
+aw_gf (group functions) changes the defination list to have wrappers
+
+>aw_gf []                      new_defs = new_defs
+>aw_gf ((Function a b c d):xs) new_defs = aw_gf new_xs new_new_defs
+>                                         where
+>                                         new_new_defs = new_defs++[new_agent]
+>                                         new_agent = aw_raf ((Function a b c d):xs) a
+>                                         new_xs = aw_rol xs [] a
+>aw_gf (x:xs)                  new_defs = aw_gf xs (new_defs++[x])
+
+
+
+aw_rol (rest of list), retuns a list of all functions and names that are not the agent being looked for
+
+>aw_rol [] list id = list
+>aw_rol ((Function a b c d):xs) list id = aw_rol xs new_list id
+>                                         where
+>                                         new_list = list, if a = id
+>                                                  = list++[(Function a b c d)], otherwise
+>aw_rol (x:xs) list id = aw_rol xs (list++[x]) id
+
+
+
+aw_raf (return agent function) retuns a function which is the wrapper with the agent inside
+
+
+>aw_raf x id = agent
+>              where
+>              agent = aw_cta agentlist id
+>              agentlist = aw_apol x [] id
+
+
+aw_apol (agent part of list), this returns a list of only the functions associated with the agent this is important as it can be used to additfy the list and order of said list for each agent
+
+>aw_apol []                      list id = list
+>aw_apol ((Function a b c d):xs) list id = aw_apol xs new_list id
+>                                          where
+>                                          new_list = list++[(Function a b c d)], if a = id
+>                                                   = list, otherwise
+>aw_apol (x:xs)                  list id = aw_apol xs list id
+
+
+aw_cta (create the agent) creates the agent with the list of what functions are in the agent
+
+>aw_cta x id = Function agent wrap args expr
+>              where
+>              agent = id
+>              wrap  = "wrapper"
+>              args  = []
+>              expr  = aw_rwe x
+
+
+aw_rwe (return wrapper expression), returns the where statement and functionality of the wrapper function
+
+agent_Wrapper = _createlistw 0
+                where
+                _createlistw t = ([agent_f1!t, agent_f2!t, ..]):(_createlistw (t+1))
+                agent_f1
+                agent_f2
+                agent_f3
+
+
+>aw_rwe x = Where wrapcall wrapfun
+>           where
+>           wrapcall = Funint "createlistw" [Argument (Number 0)]
+>           wrapfun  = wrapint:edited_x
+>           edited_x = aw_cftif x []
+>           wrapint  = IntFunction "createlistw" [Argument (Varint "t")] wrapexp
+>           wrapexp  = Operation (wrapfunlist) (Listadd) (Funint "createlistw" argtp)
+>           argtp    = [Argument (Operation (Varint "t") (Plus) (Number 1))]
+>           wrapfunlist = List (aw_globc x [])
+
+
+aw_cftif (convert functions to internal functions), takes the list of type Function and returns one of type IntFucntion
+
+
+>aw_cftif [] list = list
+>aw_cftif ((Function a b c d):xs) list = aw_cftif xs (list++[IntFunction b c d])
+
+
+aw_globc (get list of bang calls) this rerutns a list of expression of calls to all functions in the agent bang with t
+
+
+>aw_globc []                      list = list
+>aw_globc ((Function a b c d):xs) list = aw_globc xs new_list
+>                                        where
+>                                        new_list = list++[Operation (Funint b c) (Bang) (Varint "t")]
+
+
+
+
+>newt = (aw_cw (con_itl (parser (lex simple_example)))) = (aw_cw (con_itl (parser (lex simple_example))))
 
 
 

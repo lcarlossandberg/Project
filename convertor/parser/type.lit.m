@@ -20,9 +20,7 @@ Here are the first couple of lines of the sugested input file, just for quick te
 
 "run_main = [main 0, main 1] var_init runnumber = myif (runnumber=0) then (10) else (20) main runnumber = [i_f1 1, i_f1 2, i_f1 3] where { i_f1 t = (i_f2 t) + (j_f1 t 1) i_f2 t = myif (t<12) then (10) else (20) j_f1 t a = myif (a<2) then (9) else (j_f2 t) j_f2 t = fun t 3 where{ fun t a = (k_f1 a)+t} k_f1 t = t + (var_init runnumber) }"
 
->pt = parser (lex simple_example)
 
->long_test = parser (lex long_example)
 
 
 
@@ -1070,7 +1068,6 @@ aw_globc (get list of bang calls) this rerutns a list of expression of calls to 
 
 
 
->newt = (aw_cw (con_itl (parser (lex simple_example)))) = (aw_cw (con_itl (parser (lex simple_example))))
 
 
 
@@ -1078,38 +1075,154 @@ aw_globc (get list of bang calls) this rerutns a list of expression of calls to 
 
 
 
-This is not working code
-I will use this code to help make a print statement when I have time
+Here the new call for external functions is added. Any Function not in the same agent now has to be called as an output of its parent agents wrapper function.
 
-printprog :: prog -> [char]
-printprog (Prog a b) = "{\n" ++ (printdefs a) ++ "\n}\nIN\n" ++ (printexpr b)
+the wraper function outputs a infinite list with each element relating to each time step.
+each of these elements them selfs are lists which contain that times output for each fucntion within the agent.
 
-printdefs :: defs -> [char]
-printdefs (Emptydefs) = []
-printdefs (Defse a)   = printfundef a
-printdefs (Defs a rest) = (printfundef a)++"\n"++(printdefs rest)
+therefore to access a function the wrapper has to be called as so ((wrapper!t)!func)
+t starts at 0 and func is which function in the list it is, this list starts at 0 and is order the same way as it is defined in the input file.
 
-printfundef :: fundef -> [char]
-printfundef (Fundef name as e) = name++" "++(printargs as)++" = "++(printexpr e)++",\n"
+This is done in two parts, one that idenfies what calls need to be changed and changes them, the second is needed for this and can identify the number in the output list that relates to the function
 
-printargs :: args -> [char]
-printargs Emptyargs   = []
-printargs (Argse a)   = (printarg a)
-printargs (Args x xs) = (printarg x)++" "++(printargs xs)
 
-printarg :: arg -> [char]
-printarg (Arg name) = name
+awc_cc (agent wrapper call change call), this function returns the the experemnt but with new calls to external functions
 
-printexpr :: expr -> [char]
-printexpr (Variable name)  = name
-printexpr (Opexpr e1 o e2) = (printexpr e1)++" "++(printop o)++" "++(printexpr e2)
-printexpr (App e1 e2)      = (printexpr e1)++" "++(printexpr e2)
-printexpr (Brackets e)     = "("++(printexpr e)++")"
-printexpr (Numcon x)       = (show x)
+>awc_cc (Program def_list exp) = Program new_def_list new_exp
+>                                where
+>                                new_def_list = awc_cdl def_list []
+>                                new_exp = awc_ce exp
 
-printop :: op -> [char]
-printop Pluss   = "+"
-printop Mults   = "*"
-printop Minuss  = "-"
-printop Divides = "/"
+
+awc_cdl (change def list) this returns the def list with the new call
+
+>awc_cdl []                      def_list = def_list
+>awc_cdl ((Function a b c d):xs) def_list = awc_cdl xs (def_list++[new_wrapfun])
+>                                           where
+>                                           new_wrapfun = Function a b c new_where
+>                                           new_where = awc_nwsa d
+>awc_cdl (x:xs)                  def_list = awc_cdl xs (def_list++[x])
+
+
+awc_nwsa (new where statement agent) this changes the where statement in a agents function to have the write calls
+
+>awc_nwsa (Where expr def_list) = Where expr new_def_list
+>                                 where
+>                                 new_def_list = def_list ||awc_cdla def_list []
+
+awc_cdla (chang def list agent), this changes the def list in the agent
+this def list contains names and the actual functions inside there list time wrappers
+the first function will be the agent out defination called
+
+does this need function or IntFucntion?????
+
+
+awc_cdla []                      new_list = new_list
+awc_cdla ((Function a b c d):xs) new_list = awc_cdla xs (new_list++[new_func])
+                                            where
+                                            new_func = Function a b c
+awc_cdla (x:xs)                  new_list = awc_cdla xs (new_list++[x])
+
+
+
+
+
+
+
+
+
+
+
+
+awc_ce (change expression)
+
+>awc_ce x = x
+
+
+
+
+>conv = (aw_cw (con_itl (parser (lex simple_example))))
+
+>newt = awc_cc (conv) = conv
+
+>pt = print conv
+
+
+
+
+
+
+
+
+
+This is a print program that will print any code inside the program type
+so far it will only print the defination list
+
+
+>print (Program defs prog) = pnt defs
+
+>pnt = printdefs "\n" ""
+
+>printdefs pdefs space []     = pdefs
+>printdefs pdefs space (x:xs) = printdefs (pdefs++space++(printdef x)++"\n") space xs
+
+
+
+
+>printdef (Name n e)             = "c_"++n++" = "++(printexpr e)
+>printdef (Function a n args e)  = a++"_"++n++" "++(printargs args "")++" = "++(printexpr e)
+>printdef (InterVariable n e)    = n++" = "++(printexpr e)
+>printdef (IntFunction n args e) = "_"++n++" "++(printargs args "")++" = "++(printexpr e)
+
+
+
+>printargs []     pargs = pargs
+>printargs (x:xs) pargs = printargs xs (pargs++(printarg x))
+
+>printarg (Argument e) = printexpr e
+
+
+
+>printexpr (Emptyexpression)  = " "
+>printexpr (Ifelse a b c)     = "if "++(printexpr a)++" do "++(printexpr b)++" else "++(printexpr c)
+>printexpr (Brackets a)       = "("++(printexpr a)++")"
+>printexpr (List a)           = "["++(printelist a "")++"]"
+>printexpr (Operation a b c)  = (printexpr a)++" "++(printop b)++" "++(printexpr c)
+>printexpr (Funint n args)    = "_"++n++" "++(printargs args "")
+>printexpr (Funext a n args)  = a++"_"++n++(printargs args "")
+>printexpr (Varint a)         = a
+>printexpr (Varex n args)     = "Var_"++n++" "++(printargs args "")  ||dont think i need this
+>printexpr (Constantvar n)    = "c_"++n
+>printexpr (Specialfunc sf e) = (printspecfunc sf)++" "++(printexpr e)
+>printexpr (Number n)         = (printnumber n)
+>printexpr (Where e dl)       = (printexpr e)++"\n    where\n"++(printdefs "" "    " dl)
+>printexpr (Mainfunc args)    = "this should not be printed yet (Mainfunc)"
+
+
+>printelist []     list = list
+>printelist (x:xs) list = printelist xs (list++(printexpr x)++", ")        ||need to change this so it doesnt add , to the end of the list
+
+
+>printop Plus        = "+"
+>printop Minus       = "-"
+>printop Multiply    = "*"
+>printop Divide      = "/"
+>printop Lessthan    = "<"
+>printop Greaterthan = ">"
+>printop Equals      = "="
+>printop Notequals   = "!="
+>printop Lessequ     = "<="
+>printop Greaterequ  = ">="
+>printop Listadd     = ":"
+>printop Bang        = "!"
+
+
+>printspecfunc Listhead = "hd "
+>printspecfunc Listtail = "tl "
+
+>printnumber::num->[char]
+>printnumber x = (show x)
+
+
+
 

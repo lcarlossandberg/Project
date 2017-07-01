@@ -1114,23 +1114,52 @@ awc_cdla (chang def list agent), this changes the def list in the agent
 this def list contains names and the actual functions inside there list time wrappers
 the first function will be the agent out defination called
 
-does this need function or IntFucntion?????
 
 
-awc_cdla []                      new_list = new_list
-awc_cdla ((Function a b c d):xs) new_list = awc_cdla xs (new_list++[new_func])
-                                            where
-                                            new_func = Function a b c
-awc_cdla (x:xs)                  new_list = awc_cdla xs (new_list++[x])
+>awc_cdla []                       edit_defs = edit_defs
+>awc_cdla ((IntFunction a b c):xs) edit_defs = awc_cdla xs (edit_defs++[new_def])
+>                                              where
+>                                              new_def = (IntFunction a b c), if a = "createlistw"
+>                                                      = (IntFunction a b new_sub), otherwise
+>                                              new_sub = awc_csdc c
+>awc_cdla ((Name a b):xs)          edit_defs = awc_cdla xs (edit_defs++[(Name a b)])
 
 
-
-
-
-
+||there shouldnt be an functions or InterVariable defiontions here, if there are a error will be thrown
 
 
 
+awc_csdc (change sublogic defination calls) changes the calls in the sublogic to be correct
+
+>awc_csdc (Where exp defs) = Where exp new_defs
+>                            where
+>                            new_defs = awc_cds defs []
+
+
+awc_cds (change definations) changes the definations to have the correct calls
+(list should only contain IntFunction at this level)
+
+>awc_cds []                       new_defs = new_defs
+>awc_cds ((IntFunction a b c):xs) new_defs = awc_cds xs (new_defs++[new_def])
+>                                            where
+>                                            new_def = (IntFunction a b c), if a = "createlist"
+>                                                    = (IntFunction a b new_exp), otherwise  ||this fucntion should be called "sublogic"
+>                                            new_exp = awc_ccie c
+
+
+awc_ccie (change calls in expression), changes the expression to make the write calls
+
+>awc_ccie (Ifelse a b c) = Ifelse (awc_ccie a) (awc_ccie b) (awc_ccie c)
+>awc_ccie (Brackets a) = Brackets (awc_ccie a)
+>awc_ccie (List a) = List (awc_cciel a)
+>awc_ccie (Operation a b c) = Operation (awc_ccie a) b (awc_ccie c)
+>awc_ccie (Funint a b) = Funint a b
+>awc_ccie (Funext a b c) = ||this is what i have to change!!!!
+>awc_ccie x = x
+
+
+
+>awc_cciel x = x ||list
 
 
 
@@ -1141,9 +1170,20 @@ awc_ce (change expression)
 
 
 
+
+This section is used for testing purposes while creating the program
+
+current version
+
 >conv = (aw_cw (con_itl (parser (lex simple_example))))
 
+
+new testing, tests the working version against the current version, should return true until functionality is changed then should retun false
+
 >newt = awc_cc (conv) = conv
+
+
+prints the current version
 
 >pt = print conv
 

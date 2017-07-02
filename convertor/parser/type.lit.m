@@ -1090,25 +1090,25 @@ awc_cc (agent wrapper call change call), this function returns the the experemnt
 
 >awc_cc (Program def_list exp) = Program new_def_list new_exp
 >                                where
->                                new_def_list = awc_cdl def_list []
->                                new_exp = awc_ce exp
+>                                new_def_list = awc_cdl def_list [] def_list ||the second def_list is needed later on to find what number in a agent a function is
+>                                new_exp = awc_ce exp def_list
 
 
 awc_cdl (change def list) this returns the def list with the new call
 
->awc_cdl []                      def_list = def_list
->awc_cdl ((Function a b c d):xs) def_list = awc_cdl xs (def_list++[new_wrapfun])
->                                           where
->                                           new_wrapfun = Function a b c new_where
->                                           new_where = awc_nwsa d
->awc_cdl (x:xs)                  def_list = awc_cdl xs (def_list++[x])
+>awc_cdl []                      def_list df = def_list
+>awc_cdl ((Function a b c d):xs) def_list df = awc_cdl xs (def_list++[new_wrapfun]) df
+>                                              where
+>                                              new_wrapfun = Function a b c new_where
+>                                              new_where = awc_nwsa d df
+>awc_cdl (x:xs)                  def_list df = awc_cdl xs (def_list++[x]) df
 
 
 awc_nwsa (new where statement agent) this changes the where statement in a agents function to have the write calls
 
->awc_nwsa (Where expr def_list) = Where expr new_def_list
->                                 where
->                                 new_def_list = def_list ||awc_cdla def_list []
+>awc_nwsa (Where expr def_list) df = Where expr new_def_list
+>                                    where
+>                                    new_def_list = awc_cdla def_list [] df
 
 awc_cdla (chang def list agent), this changes the def list in the agent
 this def list contains names and the actual functions inside there list time wrappers
@@ -1116,13 +1116,13 @@ the first function will be the agent out defination called
 
 
 
->awc_cdla []                       edit_defs = edit_defs
->awc_cdla ((IntFunction a b c):xs) edit_defs = awc_cdla xs (edit_defs++[new_def])
->                                              where
->                                              new_def = (IntFunction a b c), if a = "createlistw"
->                                                      = (IntFunction a b new_sub), otherwise
->                                              new_sub = awc_csdc c
->awc_cdla ((Name a b):xs)          edit_defs = awc_cdla xs (edit_defs++[(Name a b)])
+>awc_cdla []                       edit_defs df = edit_defs
+>awc_cdla ((IntFunction a b c):xs) edit_defs df = awc_cdla xs (edit_defs++[new_def]) df
+>                                                 where
+>                                                 new_def = (IntFunction a b c), if a = "createlistw"
+>                                                         = (IntFunction a b new_sub), otherwise
+>                                                 new_sub = awc_csdc c df
+>awc_cdla ((Name a b):xs)          edit_defs df = awc_cdla xs (edit_defs++[(Name a b)]) df
 
 
 ||there shouldnt be an functions or InterVariable defiontions here, if there are a error will be thrown
@@ -1131,41 +1131,162 @@ the first function will be the agent out defination called
 
 awc_csdc (change sublogic defination calls) changes the calls in the sublogic to be correct
 
->awc_csdc (Where exp defs) = Where exp new_defs
->                            where
->                            new_defs = awc_cds defs []
+>awc_csdc (Where exp defs) df = Where exp new_defs
+>                               where
+>                               new_defs = awc_cds defs [] df
 
 
 awc_cds (change definations) changes the definations to have the correct calls
 (list should only contain IntFunction at this level)
 
->awc_cds []                       new_defs = new_defs
->awc_cds ((IntFunction a b c):xs) new_defs = awc_cds xs (new_defs++[new_def])
->                                            where
->                                            new_def = (IntFunction a b c), if a = "createlist"
->                                                    = (IntFunction a b new_exp), otherwise  ||this fucntion should be called "sublogic"
->                                            new_exp = awc_ccie c
+>awc_cds []                       new_defs df = new_defs
+>awc_cds ((IntFunction a b c):xs) new_defs df = awc_cds xs (new_defs++[new_def]) df
+>                                               where
+>                                               new_def = (IntFunction a b c), if a = "createlist"
+>                                                       = (IntFunction a b new_exp), otherwise  ||this fucntion should be called "sublogic"
+>                                               new_exp = awc_ccie c df
 
 
-awc_ccie (change calls in expression), changes the expression to make the write calls
-
->awc_ccie (Ifelse a b c) = Ifelse (awc_ccie a) (awc_ccie b) (awc_ccie c)
->awc_ccie (Brackets a) = Brackets (awc_ccie a)
->awc_ccie (List a) = List (awc_cciel a)
->awc_ccie (Operation a b c) = Operation (awc_ccie a) b (awc_ccie c)
->awc_ccie (Funint a b) = Funint a b
->awc_ccie (Funext a b c) = ||this is what i have to change!!!!
->awc_ccie x = x
+awc_ccie (change calls in expression), changes the expression (inside _sublogic) to make the write calls
+all external functions are already being called with a ! relating to the time they are being called from. Thereofore a function my look like
+a_f!t
+this needs to change to
+(a!f)!t
+therefore external functions (Funext) will only be encounted in a Operation with a bang
 
 
+>awc_ccie (Ifelse a b c)    df = Ifelse (awc_ccie a df) (awc_ccie b df) (awc_ccie c df)
+>awc_ccie (Brackets a)      df = Brackets (awc_ccie a df)
+>awc_ccie (List a)          df = List (awc_cciel a [] df)
+>awc_ccie (Operation a b c) df = Operation (awc_ccie a df) b (awc_ccie c df), if awc_nfc a
+>                              = awc_nfcb (Operation a b c) df, otherwise
+>awc_ccie (Funint a b)      df = Funint a (awc_ccal b [] df)
+>awc_ccie (Varint a)        df = Varint a
+>awc_ccie (Varex a b)       df = Varex a (awc_ccal b [] df)
+>awc_ccie (Constantvar a)   df = Constantvar a
+>awc_ccie (Specialfunc a e) df = Specialfunc a (awc_ccie e df)
+>awc_ccie (Number a)        df = Number a
+>awc_ccie (Where e defs)    df = Where (awc_ccie e df) (awc_ccdl defs [] df)
 
->awc_cciel x = x ||list
+
+
+
+
+
+
+awc_nfc (not function call) returns true is this is not an Operation banging a function with some varible
+
+>awc_nfc (Funext a b c) = False
+>awc_nfc x              = True
+
+
+
+awc_nfcb (new function call bang) this creates the new Operation which bangs the function
+
+
+>awc_nfcb (Operation (Funext ag fc args) bg time) df = Operation funcb Bang time
+>                                                      where
+>                                                      funcb   = Operation agent Bang funnum
+>                                                      agent   = Funext ag "wrapper" []
+>                                                      funnum  = Number (awc_ftfn ag fc df)
+
+
+awc_ftfn (find the function number), this function finds what number function output it is within the wrapper function
+the first function will be 0
+
+
+
+>awc_ftfn agent function df = funcnum
+>                             where
+>                             funcnum = awc_rfn defs function 0
+>                             defs    = awc_rdfs wrapper
+>                             wrapper = awc_faw df agent
+
+
+
+awc_faw (find agent wrapper), returns the expression from the agent wrapper that relates to the agent identifier
+df is the full definition list from program [definition] experiment
+this is a list of Names and function wrappers
+
+>awc_faw ((Function agent name args exp):xs) id = exp, if agent = id
+>                                               = awc_faw xs id, otherwise
+
+
+awc_rdfs (return defiontion functions ) returns a list just of the function defiontions
+
+>awc_rdfs (Where exp defs) = new_defs
+>                            where
+>                            new_defs = awc_rmcl defs []
+
+awc_rmcl (remove _createlistw), removes the _createlistw function from the list and returns just the list of function defiontions
+
+>awc_rmcl []                       deflis = deflis
+>awc_rmcl ((IntFunction a b c):xs) deflis = awc_rmcl xs deflis
+>awc_rmcl (x:xs)                   deflis = awc_rmcl xs (deflis++[x])
+
+
+awc_rfn (return function number), this returns what number in the list a function is
+
+>awc_rfn defs id b = b, if check
+>                  = awc_rfn defs id (b+1), otherwise
+>                    where
+>                    check = awc_gcd def id
+>                    def   = defs!b
+
+
+awc_gcd (get conformation defiontions), returns true if the defiontions is the b'th item
+
+>awc_gcd (IntFunction a b c) id = True, if a = id
+>                               = False, otherwise
+
+
+
+awc_cciel (change call in expression list), retuns list of expressions, with calls changed
+
+>awc_cciel []     lise df = lise
+>awc_cciel (x:xs) lise df = awc_cciel xs (lise++[new_x]) df
+>                           where
+>                           new_x = awc_ccie x df
+
+
+awc_ccal (change call argument list), changes the argument list to be correct
+
+>awc_ccal []                arglist df = arglist
+>awc_ccal ((Argument x):xs) arglist df = awc_ccal xs (arglist++[nex_argx]) df
+>                                        where
+>                                        nex_argx = Argument new_x
+>                                        new_x    = (awc_ccie x df)
+
+
+awc_ccdl (change call defionition list)
+
+>awc_ccdl []     deflist df = deflist
+>awc_ccdl (x:xs) deflist df = awc_ccdl xs (deflist++[new_x]) df
+>                             where
+>                             new_x = aw_cdc x df
+
+aw_cdc (change defintion call), changes a defintion to have the correct
+
+>aw_cdc (Name a ex)             df = Name a (awc_ccie ex df)
+>aw_cdc (Function a b args ex)  df = Function a b (awc_ccal args [] df) (awc_ccie ex df)
+>aw_cdc (InterVariable a ex)    df = InterVariable a (awc_ccie ex df)
+>aw_cdc (IntFunction a args ex) df = IntFunction a (awc_ccal args [] df) (awc_ccie ex df)
+
 
 
 
 awc_ce (change expression)
 
->awc_ce x = x
+>awc_ce (Experiment gv eb er) df = Experiment gv new_eb er
+>                                  where
+>                                  new_eb = awc_neb eb df
+
+
+awc_neb (new Experiment body )
+
+>awc_neb (Expbody args ex) df = Expbody args new_ex
+>                               where
+>                               new_ex = awc_ccie ex df
 
 
 
@@ -1175,18 +1296,20 @@ This section is used for testing purposes while creating the program
 
 current version
 
->conv = (aw_cw (con_itl (parser (lex simple_example))))
+>conv = (awc_cc (aw_cw (con_itl (parser (lex simple_example)))))
 
 
 new testing, tests the working version against the current version, should return true until functionality is changed then should retun false
 
->newt = awc_cc (conv) = conv
+>newt = (conv) = conv
 
 
 prints the current version
 
 >pt = print conv
 
+
+||SOMETHIGN IS BROKEN
 
 
 

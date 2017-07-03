@@ -1231,7 +1231,8 @@ awc_rdfs (return defiontion functions ) returns a list just of the function defi
 awc_rmcl (remove _createlistw), removes the _createlistw function from the list and returns just the list of function defiontions
 
 >awc_rmcl []                       deflis = deflis
->awc_rmcl ((IntFunction a b c):xs) deflis = awc_rmcl xs deflis
+>awc_rmcl ((IntFunction a b c):xs) deflis = awc_rmcl xs deflis, if a = "createlistw"
+>                                         = awc_rmcl xs (deflis++[IntFunction a b c]), otherwise
 >awc_rmcl (x:xs)                   deflis = awc_rmcl xs (deflis++[x])
 
 
@@ -1240,56 +1241,19 @@ awc_rfn (return function number), this returns what number in the list a functio
 >awc_rfn defs id b = b, if check
 >                  = awc_rfn defs id (b+1), otherwise
 >                    where
->                    check = awc_gcd def id    ||THE ERROR IS HERE!!!!!!!!!!!!
->                    def   = defs!b            ||THE ERROR SHOULD BE HERE???? (I changed b to 0 and the error still happened)
+>                    check = awc_gcd def id
+>                    def   = defs!b
 
 
 
 
 awc_gcd (get conformation defiontions), returns true if the defiontions is the b'th item
 
-THIS IS MY DISCRIPTION OF THE PROBLEM (FIND THIS LINE BY SEARCHING: LEOSPROBLEM)
-The problem is in function awc_gcd which is called in the function above (awc_rfn)
-The erro is : program error: subscript out of range
-This implies that defs!b should be the issue and is indexing out of range
-however when I set b = 0 so it can phsysically index out of range it still does the problem
 
-This is the code I want to run but is not working
-This is literate script so the > is not included so these lines wont run
-
-awc_gcd (IntFunction a b c) id = True, if a = id
-                               = False, otherwise
+>awc_gcd (IntFunction a b c) id = True, if a = id
+>                               = False, otherwise
 
 
-This line of code works, but obivioulsy doesnt have the functionality
-But it shows that the function theoritically works and has the write type
-
->awc_gcd::definition->[char]->bool
->awc_gcd x id = True
-
-I know that x has to be of type definition, otherwise the prievious lines would have failed.
-So I am now going to cover every case of definition
-This is done below.
-however this causes the error still
-
-awc_gcd (Name a b)          id = True
-awc_gcd (Function a b c d)  id = True
-awc_gcd (InterVariable a b) id = True
-awc_gcd (IntFunction a b c) id = True
-
-So I tried to catch all inputs just incase I some how missed a case, so I used the function below
-with x catching all other inputs, however it still caused the error depsite the fact that the x line by itself works!
-
-awc_gcd (Name a b)          id = True
-awc_gcd (Function a b c d)  id = True
-awc_gcd (InterVariable a b) id = True
-awc_gcd (IntFunction a b c) id = True
-awc_gcd x                   id = True
-
-
-
-
-THIS IS THE END OF THE PROBLEM CODE
 
 
 

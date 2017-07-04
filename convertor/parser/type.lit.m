@@ -952,7 +952,9 @@ ili_ceb (change Experiment body) changes the expression in the Experiment body
 
 
 
+Con_ag (convert agents), this adds agents
 
+>con_ag a = awc_cc (aw_cw a)
 
 
 
@@ -1319,23 +1321,112 @@ awc_neb (new Experiment body )
 
 
 
+
+
+
+
+
+
+
+
+
+con_harn (convert harness) adds the harness to the program
+
+>con_harn a = ph_cc (ph_ch a)
+
+here the harness is added
+the harness creates an finite list with each element being the output list of one wrapper function
+
+The harness is added as just another function, though it will be the first definition in the full list of definitions
+
+program_harness = [i_wrapper, j_wrapper, k_wrapper, ..]
+
+
+ph_ch (program harnes create harnes), creates the program harness
+
+>ph_ch (Program a b) = Program new_a b
+>                      where
+>                      new_a = ph_cdl a ||add def of harness
+
+ph_cdl (change definition list), adds the definition of the harness to the front of the  definitiont list
+
+>ph_cdl defs = harnness_def:defs
+>              where
+>              harnness_def = ph_chd defs
+
+ph_chd (create harness definition), returns the harness definition
+
+>ph_chd defs = harness_def
+>              where
+>              harness_def = Function "program" "harness" [] expr
+>              expr         = ph_che defs
+
+ph_che (create harness expression) returns the expression for the harness
+
+>ph_che defs = harness_expr
+>              where
+>              harness_expr = List expr_list
+>              expr_list    = ph_cel defs []
+
+ph_cel (create expression list), returns a list of the calls to the wrapper fucntions for their outputs
+
+>ph_cel::[definition]->[expression]->[expression]
+>ph_cel []                      expr_list = expr_list
+>ph_cel ((Name a b):xs)         expr_list = ph_cel xs expr_list
+>ph_cel ((Function a b c d):xs) expr_list = ph_cel xs new_expr_list
+>                                           where
+>                                           new_expr_list = expr_list++[Funext a b c]
+
+
+
+
+
+
+ph_cc (change calls), changes the calls to external functions to call the harness
+
+>ph_cc a = a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 This section is used for testing purposes while creating the program
 
 current version
 
->conv = (awc_cc (aw_cw (con_itl (parser (lex simple_example)))))
 
+>convo =  (con_ag (con_itl (parser (lex simple_example))))
+
+>convn = con_harn (con_ag (con_itl (parser (lex simple_example))))
 
 new testing, tests the working version against the current version, should return true until functionality is changed then should retun false
 
->newt = (conv) = conv
+>newt = convn = convo
 
 
 prints the current version
 
->pt = print conv
+>pt = print convn
 
->ppt = print (aw_cw (con_itl (parser (lex simple_example))))
+>ppt = print convo
 
 
 

@@ -1332,7 +1332,7 @@ awc_neb (new Experiment body )
 
 con_harn (convert harness) adds the harness to the program
 
->con_harn a = ph_cc (ph_ch a)
+>con_harn a = phc_cc (ph_ch a)
 
 here the harness is added
 the harness creates an finite list with each element being the output list of one wrapper function
@@ -1382,10 +1382,203 @@ ph_cel (create expression list), returns a list of the calls to the wrapper fucn
 
 
 
-ph_cc (change calls), changes the calls to external functions to call the harness
+phc_cc (program harness calls change calls), changes the calls to external functions to call the harness
 
->ph_cc a = a
+>phc_cc (Program a b) = Program new_a new_b
+>                       where
+>                       new_a = phc_cdl a [] ol
+>                       new_b = phc_cpe b ol
+>                       ol    = phc_rol a ||returns a ordered list of the wrapper functions
 
+
+phc_rol (return ordered list), retuns a orded list of the wrapper functions
+
+>phc_rol ((Function a b c d):xs) = wrap_list, if a = "program" & b = "harness"
+>                                = phc_rol xs, otherwise
+>                                  where
+>                                  wrap_list = phc_fol d
+>phc_rol ((Name a b):xs)         = phc_rol xs
+
+
+phc_fol (find order list), reutns the list of wrapper expressions from inside the expression for the program harness
+
+>phc_fol (List exp_list) = exp_list
+
+
+
+phc_cdl (change definition list)
+
+>phc_cdl []                      new_defs ol = new_defs
+>phc_cdl ((Name a b):xs)         new_defs ol = phc_cdl xs (new_defs++[Name a b]) ol
+>phc_cdl ((Function a b c d):xs) new_defs ol = phc_cdl xs (new_defs++[Function a b c d]) ol, if a = "program" & b = "harness"
+>                                            = phc_cdl xs (new_defs++[Function a b c new_d]) ol, otherwise
+>                                              where
+>                                              new_d = phc_cwe d ol
+
+
+phc_cwe (change wrapper expression)
+
+>phc_cwe (Where exp defs) ol = Where exp new_defs  ||this is a wrapper function
+>                              where
+>                              new_defs = phc_cdliw defs [] ol
+
+phc_cdliw (change def list in wrapper), this changes the definition list in the wrapper to have the correct calls
+
+>phc_cdliw []                       ndl ol = ndl
+>phc_cdliw ((IntFunction a b c):xs) ndl ol = phc_cdliw xs (ndl++[IntFunction a b c]) ol, if a = "createlistw"
+>                                          = phc_cdliw xs (ndl++[IntFunction a b new_c]) ol, otherwise
+>                                            where
+>                                            new_c = phc_cfw c ol
+
+phc_cfw (change function where), changes the functions where statement to have the correct calls
+
+>phc_cfw (Where exp defs) ol = Where exp new_defs
+>                              where
+>                              new_defs = phc_cfd defs [] ol
+
+phc_cfd (change function definitions), changes that definition list of the function
+
+>phc_cfd []                       defs ol = defs
+>phc_cfd ((IntFunction a b c):xs) defs ol = phc_cfd xs (defs++[IntFunction a b c]) ol, if a = "createlist"
+>                                         = phc_cfd xs (defs++[IntFunction a b new_c]) ol, otherwise
+>                                           where
+>                                           new_c = phc_cfe c ol
+
+phc_cfe (change function expression), changes the function expression to have the correct calls to external functions
+
+the call to external functions has now changed a call used to be
+
+(j_wrapper!agent)!t
+
+where agent is the number the agent is in the wrapper now a call will be
+
+(((program_harness!wrapper)!agent)!t)
+
+where wrapper is the wrapper number in the output for program_harness (in this case j would be 1, as i is 0)
+
+
+
+
+>phc_cfe (Ifelse a b c)     ol = Ifelse (phc_cfe a ol) (phc_cfe b ol) (phc_cfe c ol)
+>phc_cfe (Brackets a)       ol = Brackets (phc_cfe a ol)
+>phc_cfe (List a)           ol = List (phc_cciel a [] ol)
+>phc_cfe (Operation a b c)  ol = phc_nfcb (Operation a b c) ol, if phc_iefc a b c
+>                              = Operation (phc_cfe a ol) b (phc_cfe c ol), otherwise
+>phc_cfe (Funint a b)       ol = Funint a (phc_ccal b [] ol)
+>phc_cfe (Varint a)         ol = Varint a
+>phc_cfe (Varex a b)        ol = Varex a (phc_ccal b [] ol)
+>phc_cfe (Constantvar a)    ol = Constantvar a
+>phc_cfe (Specialfunc a e)  ol = Specialfunc a (phc_cfe e ol)
+>phc_cfe (Number a)         ol = Number a
+>phc_cfe (Where e defs)     ol = Where (phc_cfe e ol) (phc_ccdl defs [] ol)
+
+
+
+
+
+phc_cciel (change call in expression list), retuns list of expressions, with calls changed
+
+>phc_cciel []     lise ol = lise
+>phc_cciel (x:xs) lise ol = phc_cciel xs (lise++[new_x]) ol
+>                           where
+>                           new_x = phc_cfe x ol
+
+
+
+phc_nfcb (new function call bang), changes the external function call to call in the right order to the program harnes
+
+>phc_nfcb (Operation func bg time) ol = Operation new_func bg time
+>                                       where
+>                                       new_func = phc_nfcb2 func ol
+
+>phc_nfcb2 (Operation wrap bg agent) ol = Operation new_wrap bg agent
+>                                         where
+>                                         new_wrap = phc_nfcb3 wrap ol
+
+
+
+>phc_nfcb3 wrap ol = Operation (Funext "program" "harness" []) Bang (wrapnum)
+>                    where
+>                    wrapnum = Number (phc_fwn wrap ol 0)
+
+
+phc_fwn (find wrapper number) returns the number of the wrapper in the wrapper in the program haness list
+
+>phc_fwn wrap ol num = num, if check
+>                    = phc_fwn wrap ol (num+1), otherwise
+>                      where
+>                      check = phc_fwn2 wrap wrapfound
+>                      wrapfound = ol!num
+
+>phc_fwn2 wrap wrapfound = True, if wrap = wrapfound
+>                        = False, otherwise
+
+
+
+
+
+
+phc_iefc (is external function call), returns true if this is a call to an external function
+
+>phc_iefc (Operation (Funext q w e) j k) b c = True, if b = Bang & j = Bang
+>                                            = False, otherwise
+>phc_iefc x                              y z = False
+
+
+
+
+
+
+
+
+phc_ccal (change call argument list), changes the argument list to be correct
+
+>phc_ccal []                arglist ol = arglist
+>phc_ccal ((Argument x):xs) arglist ol = phc_ccal xs (arglist++[nex_argx]) ol
+>                                        where
+>                                        nex_argx = Argument new_x
+>                                        new_x    = (phc_cfe x ol)
+
+
+
+
+
+
+phc_ccdl (change call defionition list)
+
+>phc_ccdl []     deflist ol = deflist
+>phc_ccdl (x:xs) deflist ol = phc_ccdl xs (deflist++[new_x]) ol
+>                             where
+>                             new_x = phc_cdc x ol
+
+phc_cdc (change defintion call), changes a defintion to have the correct
+
+>phc_cdc (Name a ex)             ol = Name a (phc_cfe ex ol)
+>phc_cdc (Function a b args ex)  ol = Function a b (phc_ccal args [] ol) (phc_cfe ex ol)
+>phc_cdc (InterVariable a ex)    ol = InterVariable a (phc_cfe ex ol)
+>phc_cdc (IntFunction a args ex) ol = IntFunction a (phc_ccal args [] ol) (phc_cfe ex ol)
+
+
+
+
+
+
+
+
+
+
+
+
+
+phc_cpe (change program expression)
+
+>phc_cpe (Experiment gv eb er) ol = Experiment gv new_eb er
+>                                   where
+>                                   new_eb = phc_eeb eb ol
+
+>phc_eeb (Expbody args exp) ol = Expbody args new_exp
+>                                where
+>                                new_exp = phc_cfe exp ol 
 
 
 

@@ -1563,13 +1563,6 @@ phc_cdc (change defintion call), changes a defintion to have the correct
 
 
 
-
-
-
-
-
-
-
 phc_cpe (change program expression)
 
 >phc_cpe (Experiment gv eb er) ol = Experiment gv new_eb er
@@ -1598,6 +1591,352 @@ phc_cpe (change program expression)
 
 
 
+This section adds message passing, by adding agruments to the program harness and the wrapper functions
+
+con_mp (convert message passing)
+
+>con_mp a = mpa a
+
+Here arguments are added to the program_harness which takes the output of each wrapper as a argument
+arguments added to each wrapper which takes the program_harness as the argument
+
+mpa (convert message passing arguments), adds the message arguments and correct arguments calls
+
+>mpa a = mpav a
+
+
+mpav (message passing arguments varibles), adds arguments to program_harness and wrappers
+
+>mpav (Program a b) = Program new_a b
+>                     where
+>                     new_a = mpav_cwl a [] a
+
+mpav_cwl (change wrapper list), changes the list of wrappers and program_harness to have the correct arguments
+
+>mpav_cwl []                         new_defs defs = new_defs
+>mpav_cwl ((Function a b args d):xs) new_defs defs = mpav_cwl xs (new_defs++[new_def]) defs
+>                                                    where
+>                                                    new_def = Function a b prog_args d, if a="program" & b="harness"
+>                                                            = Function a b wrap_args d, otherwise
+>                                                    prog_args = mpav_afp defs []
+>                                                    wrap_args = mpav_afw
+>mpav_cwl (x:xs)                     new_defs defs = mpav_cwl xs (new_defs++[x]) defs
+
+
+mpav_afp (arguments for program)
+
+>mpav_afp []                      args = args
+>mpav_afp ((Function a b c d):xs) args = mpav_afp xs new_args
+>                                        where
+>                                        new_args = args ++ [Argument exp], if b = "wrapper"
+>                                                 = args, otherwise
+>                                        exp = Funext a b c
+>mpav_afp (x:xs)                  args = mpav_afp xs args
+
+
+mpav_afw (arguments for wrappers)
+
+>mpav_afw = [arg]
+>           where
+>           arg = Argument progharn
+>           progharn = Funext "program" "harness" []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+This section add directed messages with a to from componet
+
+added to from messages which are sent to the harness
+(to, from, value) The value is function!time
+There will be a new message for every different value a wrapper my require
+These will be output as a list [messages]
+This will be passed to the harness, the harness will receive one of these lists from each wrapper at each time step
+The harness will then output a list of lists (this will obvioulsy be within an infite time list), where each item in the main list is for a different wrapper, and then within that item is a list of each value the wrapper will recive
+[i_wrapper, j_wrapper, k_wrapper]
+where i_wrapper will be
+[j_f1!t]
+These new input values will be linked to there usage in the wrapper via a variable name
+
+
+
+>con_dm a = dmi (dmh (dmo a))
+
+dmo (direct messagging output), creates the output messages from the wrappers
+
+>dmo (Program a b) = Program new_a b
+>                    where
+>                    new_a = dmo_ndl a cl
+>                    cl    = dmo_ccl a
+
+dmo_ccl (create call list), this returns a [[[]]], the top list contains the data for each wrapper, the first wrapper will index !0, getting back a [[]]. list has an element for each other wrapper and contains a list what values are required for each wrapper
+[i_wrapper, j_wrapper, k_wrapper] ! (which wrapper you are in) eg i
+[j_wrapper, k_wrapper] ! (both eventually, but which one you are sending to), eg j
+[f1] this is the list of values that j wants from i
+
+>dmo_ccl defs = call_list
+>               where
+>               call_list = dmo_ccls wrappers [] wrappers
+>               wrappers = dmo_groh defs []
+
+dmo_groh (get rid of harness), retuns the def list with only wrappers, getting rid of the harness and any constants
+
+>dmo_groh []                      wraplist = wraplist
+>dmo_groh ((Function a b c d):xs) wraplist = dmo_groh xs wraplist, if a = "program" & b = "harness"
+>                                          = dmo_groh xs (wraplist++[(Function a b c d)]), otherwise
+>dmo_groh (x:xs)                  wraplist = dmo_groh xs wraplist
+
+
+dmo_ccls (create call list sub), actually returns the call list
+
+>dmo_ccls []     clist wraps = clist
+>dmo_ccls (x:xs) clist wraps = dmo_ccls xs (clist++[calls]) wraps
+>                              where
+>                              calls = dmo_ccfx notx [] x wraps
+>                              notx = dmo_nx wraps [] x
+
+
+dmo_nx (not x), retuns the wrapper list, without the wrapper relating to x
+
+>dmo_nx []     nxwraps x = nxwraps
+>dmo_nx (y:ys) nxwraps x = dmo_nx ys (nxwraps++[y]) x, if y~=x
+>                        = dmo_nx ys nxwraps x, otherwise
+
+
+
+dmo_ccfx (creat calls for x), returns a list of the wrappers calling for values from x
+
+>dmo_ccfx []     xlist x wraps = xlist
+>dmo_ccfx (y:ys) xlist x wraps = dmo_ccfx ys (xlist++[xcalls]) x wraps
+>                                where
+>                                xcalls = dmo_cfxciy y xnum
+>                                xnum   = dmo_fxn x wraps 0
+
+dmo_fxn (find x number), retuns the number in the list of wrappers that x is
+
+>dmo_fxn x wraps b = b, if check
+>                  = dmo_fxn x wraps (b+1), otherwise
+>                    where
+>                    check = True, if (wraps!b) = x
+>                    check = False, otherwise
+
+dmo_cfxciy (create function x calls in y), returns a list of calls to x from y
+takes y_wrapper = ... looks inside the functions, and returns a list of what calls this wrapper makes to x
+
+>dmo_cfxciy (Function a b c exp) xnum = intflist
+>                                       where
+>                                       intflist = dmo_cfl flist [] xnum
+>                                       flist    = dmo_dcl fflist []
+>                                       fflist   = dmo_fif exp
+
+dmo_dcl (delete create list), reutns the list of definations with out the createlist defination
+
+>dmo_dcl []                       flist = flist
+>dmo_dcl ((IntFunction a b c):xs) flist = dmo_dcl xs flist, if a = "createlistw"
+>                                       = dmo_dcl xs (flist++[(IntFunction a b c)]), otherwise
+
+
+dmo_fif (find internal functions), retuns the list of definations wihtin the where statemnet of a wrapper
+
+>dmo_fif (Where a defs) = defs
+
+dmo_cfl (create Function list), retuns the list of all fucntions being called by this wrapper that are from wrapper x
+
+>dmo_cfl []                        iflist xnum = iflist
+>dmo_cfl ((Function a b c exp):xs) iflist xnum = dmo_cfl xs (iflist++fcalls) xnum
+>                                                where
+>                                                fcalls  = dmo_fefc subloge [] xnum
+>                                                subloge = dmo_rsle sublog
+>                                                sublog  = dmo_rslf inexp
+>                                                inexp   = dmo_iwe exp
+
+dmo_rsle (return sublogic expression), retuns the expression from the sublogic of a function
+
+>dmo_rsle (IntFunction a b exp) = exp
+
+dmo_rslf (retuns sublogic function), takes the definations list and removes the creatlist function just retuning the sublogic
+
+>dmo_rslf ((IntFunction a b c):xs) = (IntFunction a b c), if a = "sublogic"
+>                                  = dmo_rslf xs, otherwise
+
+dmo_iwe (in where expression), retuns the expression in the where statement for a function
+
+>dmo_iwe (Where a defs) = defs
+
+dmo_fefc (find external functton calls), retuns a list of what functions the expression uses from wrapper x, this is in the form of a list of num, [num]
+
+>dmo_fefc::expression->[num]->num->[num]
+>dmo_fefc (Ifelse a b c)    flist xnum = nflist
+>                                        where
+>                                        nflist = flist1++flist2++flist3
+>                                        flist1 = dmo_fefc a [] xnum
+>                                        flist2 = dmo_fefc b [] xnum
+>                                        flist3 = dmo_fefc c [] xnum
+>dmo_fefc (Brackets a)      flist xnum = nflist
+>                                        where
+>                                        nflist = dmo_fefc a [] xnum
+>dmo_fefc (List a)          flist xnum = nflist
+>                                        where
+>                                        nflist = dmo_fefinl a [] xnum
+>dmo_fefc (Operation a b c) flist xnum = nflist
+>                                        where
+>                                        nflist = dmo_effec a, if dmo_itefc a b c xnum
+>                                               = dmo_efnx c xnum, if dmo_nxefc a b c xnum
+>                                               = (dmo_fefc a [] xnum)++(dmo_fefc c [] xnum), otherwise
+>dmo_fefc (Funint a b)      flist xnum = nflist
+>                                        where
+>                                        nflist = dmo_fefina b [] xnum
+>dmo_fefc (Varint a)        flist xnum = flist
+>dmo_fefc (Varex a b)       flist xnum = nflist
+>                                        where
+>                                        nflist = dmo_fefina b [] xnum
+>dmo_fefc (Constantvar a)   flist xnum = flist
+>dmo_fefc (Specialfunc a e) flist xnum = nflist
+>                                        where
+>                                        nflist = dmo_fefc e [] xnum
+>dmo_fefc (Number a)        flist xnum = flist
+>dmo_fefc (Where e defs)    flist xnum = nflist
+>                                        where
+>                                        nflist = flist1 ++ flist2
+>                                        flist1 = dmo_fefc e [] xnum
+>                                        flist2 = dmo_fefid defs [] xnum
+
+
+dmo_fefinl (find external fucnition in list), returns a list of the external functions from x being called in the list
+
+>dmo_fefinl []     flist xnum = flist
+>dmo_fefinl (x:xs) flist xnum = dmo_fefinl xs nflist xnum
+>                               where
+>                               nflist = flist++flist1
+>                               flist1 = dmo_fefc x [] xnum
+
+
+dmo_effec (etract function for external function call), returns a list containing the number of the function that this is being called from x
+
+>dmo_effec (Operation harnbf bng (Number func)) = [func]
+
+
+dmo_itefc (is this external function call), returns true if this is a Operation relating to an external function call to the wrapper xnum
+
+>dmo_itefc (Operation (Operation n m v) y z) b c xnum = True, if check
+>                                                     = False, otherwise
+>                                                       where
+>                                                       check = (b = Bang & y = Bang & m = Bang & nv = xnum & n = (Funext "program" "harness" []))
+>                                                       nv = getnum v
+>                                                            where
+>                                                            getnum (Number a) = a
+>dmo_itefc a                                 b c xnum = False
+           
+           
+dmo_nxefc (not x external function call), returns true if the Operation is a call to an external function but not from wrapper x
+
+>dmo_nxefc (Operation (Operation n m v) y z) b c xnum = True, if check
+>                                                     = False, otherwise
+>                                                       where
+>                                                       check = (b = Bang & y = Bang & m = Bang & nv ~= xnum & n = (Funext "program" "harness" []))
+>                                                       nv = getnum v
+>                                                            where
+>                                                            getnum (Number a) = a
+>dmo_nxefc a                                 b c xnum = False
+           
+
+dmo_efnx (external function not x), retuns any function calls in a call to an extrenal funtion that is not x
+
+>dmo_efnx c xnum = flist
+>                  where
+>                  flist = dmo_fefc c [] xnum
+           
+           
+dmo_fefina (for external function in arguments), retuns a list of the external functions in the argument list
+
+>dmo_fefina::[argument]->[num]->num->[num]
+>dmo_fefina [] flist xnum = flist
+>dmo_fefina ((Argument ex):xs) flist xnum = dmo_fefina xs newflist xnum
+>                                           where
+>                                           newflist = flist ++(dmo_fefc ex [] xnum)
+           
+           
+dmo_fefid (find external functions in defintions), retuns a list of defintion calls in a defintions list
+           
+>dmo_fefid []                           flist xnum = flist
+>dmo_fefid ((Name a ex):xs)             flist xnum = dmo_fefid xs nflist xnum
+>                                                    where
+>                                                    nflist = flist ++ (dmo_fefc ex [] xnum)
+>dmo_fefid ((Function a b args ex):xs)  flist xnum = dmo_fefid xs nflist xnum
+>                                                    where
+>                                                    nflist = flist ++ flist1 ++ flist2
+>                                                    flist1 = (dmo_fefc ex [] xnum)
+>                                                    flist2 = (dmo_fefina args [] xnum)
+>dmo_fefid ((InterVariable a ex):xs)    flist xnum = dmo_fefid xs nflist xnum
+>                                                    where
+>                                                    nflist = flist ++ (dmo_fefc ex [] xnum)
+>dmo_fefid ((IntFunction a args ex):xs) flist xnum = dmo_fefid xs nflist xnum
+>                                                    where
+>                                                    nflist = flist ++ flist1 ++ flist2
+>                                                    flist1 = (dmo_fefc ex [] xnum)
+>                                                    flist2 = (dmo_fefina args [] xnum)
+
+           
+           
+           
+           
+           
+           
+           
+
+
+
+dmo_ndl (new defination list),returns a new list of definations
+
+>dmo_ndl a b = a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dmh (direct message harness), creates the output message for the harness
+
+>dmh a = a
+
+dmi (direct message input), changes the inputs on the wrappers
+
+>dmi a = a
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1606,9 +1945,9 @@ This section is used for testing purposes while creating the program
 current version
 
 
->convo =  (con_ag (con_itl (parser (lex simple_example))))
+>convo = (con_mp (con_harn (con_ag (con_itl (parser (lex simple_example))))))
 
->convn = con_harn (con_ag (con_itl (parser (lex simple_example))))
+>convn = con_dm (con_mp (con_harn (con_ag (con_itl (parser (lex simple_example))))))
 
 new testing, tests the working version against the current version, should return true until functionality is changed then should retun false
 

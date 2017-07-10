@@ -45,6 +45,7 @@
 >              |Number num
 >              |Where expression [definition]
 >              |Mainfunc [argument] ||this is the actual program itself
+>              |Tuple expression expression expression    ||not for user use
 
 
 >op::= Plus

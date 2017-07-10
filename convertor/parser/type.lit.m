@@ -212,6 +212,8 @@ this should be able to represent any function
 >              |Number num
 >              |Where expression [definition]
 >              |Mainfunc [argument] ||this is the actual program itself
+>              |Tuple expression expression expression
+
 
 >op::= Plus
 >      |Minus
@@ -1661,7 +1663,7 @@ mpav_afw (arguments for wrappers)
 This section add directed messages with a to from componet
 
 added to from messages which are sent to the harness
-(to, from, value) The value is function!time
+(from, to, value) The value is function!time
 There will be a new message for every different value a wrapper my require
 These will be output as a list [messages]
 This will be passed to the harness, the harness will receive one of these lists from each wrapper at each time step
@@ -1679,7 +1681,7 @@ dmo (direct messagging output), creates the output messages from the wrappers
 
 >dmo (Program a b) = Program new_a b
 >                    where
->                    new_a = dmo_ndl a cl
+>                    new_a = dmo_ndl a [] cl a
 >                    cl    = dmo_ccl a
 
 dmo_ccl (create call list), this returns a [[[]]], the top list contains the data for each wrapper, the first wrapper will index !0, getting back a [[]]. list has an element for each other wrapper and contains a list what values are required for each wrapper
@@ -1695,8 +1697,8 @@ dmo_ccl (create call list), this returns a [[[]]], the top list contains the dat
 dmo_groh (get rid of harness), retuns the def list with only wrappers, getting rid of the harness and any constants
 
 >dmo_groh []                      wraplist = wraplist
->dmo_groh ((Function a b c d):xs) wraplist = dmo_groh xs wraplist, if a = "program" & b = "harness"
->                                          = dmo_groh xs (wraplist++[(Function a b c d)]), otherwise
+>dmo_groh ((Function a b c d):xs) wraplist = dmo_groh xs (wraplist++[(Function a b c d)]), if b= "wrapper"
+>                                          = dmo_groh xs (wraplist), otherwise
 >dmo_groh (x:xs)                  wraplist = dmo_groh xs wraplist
 
 
@@ -1755,13 +1757,13 @@ dmo_fif (find internal functions), retuns the list of definations wihtin the whe
 
 dmo_cfl (create Function list), retuns the list of all fucntions being called by this wrapper that are from wrapper x
 
->dmo_cfl []                        iflist xnum = iflist
->dmo_cfl ((Function a b c exp):xs) iflist xnum = dmo_cfl xs (iflist++fcalls) xnum
->                                                where
->                                                fcalls  = dmo_fefc subloge [] xnum
->                                                subloge = dmo_rsle sublog
->                                                sublog  = dmo_rslf inexp
->                                                inexp   = dmo_iwe exp
+>dmo_cfl []                         iflist xnum = iflist
+>dmo_cfl ((IntFunction a b exp):xs) iflist xnum = dmo_cfl xs (iflist++fcalls) xnum
+>                                                 where
+>                                                 fcalls  = dmo_fefc subloge [] xnum
+>                                                 subloge = dmo_rsle sublog
+>                                                 sublog  = dmo_rslf inexp
+>                                                 inexp   = dmo_iwe exp
 
 dmo_rsle (return sublogic expression), retuns the expression from the sublogic of a function
 
@@ -1900,19 +1902,134 @@ dmo_fefid (find external functions in defintions), retuns a list of defintion ca
 
 
 dmo_ndl (new defination list),returns a new list of definations
+cl = call list [[[]]]
+reutns list of definations editing the wrapper function
 
->dmo_ndl a b = a
+>dmo_ndl []                      ndefs cl pds = ndefs
+>dmo_ndl ((Name a b):xs)         ndefs cl pds = dmo_ndl xs (ndefs++[(Name a b)]) cl pds
+>dmo_ndl ((Function a b c d):xs) ndefs cl pds = dmo_ndl xs (ndefs++[(Function a b c d)]) cl pds, if a = "program" & b = "harness"
+>                                             = dmo_ndl xs nndefs cl pds, otherwise ||wrappers
+>                                               where
+>                                               nndefs = ndefs++[ndef]
+>                                               ndef   = (Function a b c nd)
+>                                               nd     = dmo_cclop d a cl wraps
+>                                               wraps  = dmo_rwf pds []
+
+dmo_rwf (return wrap functions), retuns the wrap functions
+
+>dmo_rwf []                      wrps = wrps
+>dmo_rwf ((Function a b c d):xs) wrps = dmo_rwf xs (wrps++[Function a b c d]), if b = "wrapper"
+>                                     = dmo_rwf xs wrps, otherwise
+>dmo_rwf (x:xs)                  wrps = dmo_rwf xs wrps
+
+dmo_cclop (change create list out put), changes the output list in _createlistw, so that this now outputs messages at each time step to the othere wrappers that need them
+
+inputs: wrapper expression, wrapper agent, call list
+
+>dmo_cclop (Where a defs) wa cl wps = Where a ndefs
+>                                     where
+>                                     ndefs = dmo_ecl defs [] na cl
+>                                     na    = dmo_fan wps wa 0           ||number of agent
+
+
+dmo_fan (find agent number), retuns the number in the order of agents relating to the agent being looked at
+wps is the list of wrappers [defintion]
+wa is the name of the wrapper Function a b c d [char]
+
+>dmo_fan::[definition]->[char]->num->num
+>dmo_fan wps wa b = b, if check
+>                 = dmo_fan wps wa (b+1), otherwise
+>                   where
+>                   wpap  = wps!b
+>                   cwa   = dmo_gwn wpap
+>                   check = True, if cwa = wa
+>                         = False, otherwise
+
+dmo_gwn (get wrapper name)
+
+>dmo_gwn (Function a b c d) = a
+
+
+dmo_ecl (edit create list), edits the _createlistw to output the new messages
+
+>dmo_ecl []                       ndefs na cl = ndefs
+>dmo_ecl ((IntFunction a b c):xs) ndefs na cl = dmo_ecl xs nndefs na cl
+>                                               where
+>                                               nndefs = ndefs ++ [nx]
+>                                               nx     = (IntFunction a b nc), if a = "createlistw"
+>                                                      = (IntFunction a b c), otherwise
+>                                               nc     = dmo_ccle c na cl
+
+
+dmo_ccle (change create list expression)
+na is the number of the agent in question
+cl is the list saying which agents want what functions from other agents
+
+>dmo_ccle::expression->num->[[[num]]]->expression
+>dmo_ccle (Operation ls b c) na cl = Operation nls b c
+>                                    where
+>                                    nls = dmo_rnle na cl
+
+dmo_rnle (return new list expression), returns what the new list out put at a time step t should be
+This will be a list of tuples, each of the internal lists will be a message that is being passed.
+(from, to, value)
+to and from will be num, so the first wrapper is 0 and then 1 ..
+the value will be the functions return at time step t
+therefore a value will be something similar to f!t
+therefore an output could be
+
+[(0,1,_f1!t), (0,1,_f2!t), (0,2,_f2!t)]
+
+[i_wrapper, j_wrapper, k_wrapper] ! (which wrapper you are in) eg i
+[j_wrapper, k_wrapper] ! (both eventually, but which one you are sending to), eg j
+[f1] this is the list of values that j wants from i
+
+
+>dmo_rnle na cl = nopl
+>                 where
+>                 nopl = List mesl
+>                 mesl = dmo_lom ema na [] 0
+>                 ema  = dmo_ema agms na [] 0    ||adds a empty list for this agent to the list
+>                 agms = cl!na
+
+dmo_ema (empty message added), adds a empty list into the list of lists, in the place where this agent appears in the order, to make recurance easier in later functions
+
+
+>dmo_ema []     na nl li = nl++[[]], if na = li
+>                        = nl, otherwise
+>dmo_ema (x:xs) na nl li = dmo_ema xs na (nl++[[]]++[x]) (li+1), if na = li
+>                        = dmo_ema xs na (nl++[x]) (li+1), otherwise
+
+
+dmo_lom (list of messages)
+(from, to, value)
+
+>dmo_lom::[[num]]->num->[expression]->num->[expression]
+>dmo_lom []      na mesl san = mesl
+>dmo_lom ([]:xs) na mesl san = dmo_lom xs na mesl (san+1)
+>dmo_lom (x:xs)  na mesl san = dmo_lom xs na nmesl (san+1)
+>                              where
+>                              nmesl = [Tuple (Number na) (Number san) (value)]
+>                              value = Operation func Bang (Varint "t")
+>                              func  = Number 1    ||||||do this!!!!
 
 
 
 
 
+||||||||||||||||||||||||||||||||||
+
+[Tuple (Number 1) (Number 1) (Number 1)]
+
+
+>ttt (Program a b) = cl ||Program new_a b
+>                    where
+>                    cl    = dmo_ccl a
 
 
 
 
-
-
+>tttt = ttt convo
 
 
 
@@ -2010,6 +2127,7 @@ so far it will only print the defination list
 >printexpr (Number n)         = (printnumber n)
 >printexpr (Where e dl)       = (printexpr e)++"\n    where\n"++(printdefs "" "    " dl)
 >printexpr (Mainfunc args)    = "this should not be printed yet (Mainfunc)"
+>printexpr (Tuple a b c)      = "("++(printexpr a)++", "++(printexpr b)++", "++(printexpr c)++")"
 
 
 >printelist []     list = list

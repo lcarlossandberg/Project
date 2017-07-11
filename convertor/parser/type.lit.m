@@ -212,7 +212,6 @@ this should be able to represent any function
 >              |Number num
 >              |Where expression [definition]
 >              |Mainfunc [argument] ||this is the actual program itself
->              |Tuple expression expression expression
 
 
 >op::= Plus
@@ -1971,7 +1970,7 @@ cl is the list saying which agents want what functions from other agents
 >                                     nls = dmo_rnle na cl ols
 
 dmo_rnle (return new list expression), returns what the new list out put at a time step t should be
-This will be a list of tuples, each of the internal lists will be a message that is being passed.
+This will be a list of lists, each of the internal lists will be a message that is being passed.
 (from, to, value)
 to and from will be num, so the first wrapper is 0 and then 1 ..
 the value will be the functions return at time step t
@@ -2013,16 +2012,15 @@ dmo_lom (list of messages)
 >                                  mtta  = dmo_mtta x [] ols san na
 
 
-dmo_mtta (messages to this agent), returns a list of tuple which are messages to the agent san
+dmo_mtta (messages to this agent), returns a list of list which are messages to the agent san
 
-dmo_mtta q w e san na = [Tuple (Number na) (Number san) (Number 1)]
 
 >dmo_mtta::[num]->[expression]->expression->num->num->[expression]
 >dmo_mtta []     ms ols san na = ms
 >dmo_mtta (x:xs) ms ols san na = dmo_mtta xs nms ols san na
 >                                where
->                                nms   = ms ++ [Tuple (Number na) (Number san) (value)]
->                                value = dmo_rcf ols x ||Number 1 ||ols!x
+>                                nms   = ms ++ [List [(Number na), (Number san), (value)]]
+>                                value = dmo_rcf ols x
 
 
 dmo_rcf (return called function)
@@ -2037,7 +2035,82 @@ dmh (direct message harness), creates the output message for the harness
 
 >dmh a = a
 
+
+
+
+
+
+
+
+
+
 dmi (direct message input), changes the inputs on the wrappers
+ph wp1 wp2 wp3 =
+
+program_harness wrappers = list for with messages for each wrapper [i_wrapper, j_wrapper, k_wrapper, ..]
+
+where
+input
+wrappers_in = i_wrapper j_wrapper k_wrapper .. = [[from, to, value], [i, t, v], ..] [[j, t, v], ..] [(k, t ,v), ..]
+
+output
+wrappers_out = [i_wrapper, j_wrapper, k_wrapper, ..] = [[[f, i, v], [f, i, v]], [[f, j, v], ..], [[f, k, v]..]..]
+
+
+code for testing the new program_harness function
+
+iwt = [[Number 0, Number 1, Number 1],[Number 0, Number 1, Number 2]]
+
+jwt = [[Number 1, Number 0, Number 3],[Number 1, Number 2, Number 4], [Number 1,Number 2, Number 5]]
+
+kwt = [[Number 2, Number 1, Number 6]]
+
+ttt = programdharness iwt jwt kwt
+
+programdharness idwrapper jdwrapper kdwrapper = doutputlist
+                                                where
+                                                doutputlist = [dtowrap (Number 0) idwrapper jdwrapper kdwrapper, dtowrap (Number 1) idwrapper jdwrapper kdwrapper, dtowrap (Number 2) idwrapper jdwrapper kdwrapper]
+                                                dtowrap agent idwrapper jdwrapper kdwrapper = daddlist [] (dtowrapfrom [] agent idwrapper) (dtowrapfrom [] agent jdwrapper) (dtowrapfrom [] agent kdwrapper)
+                                                dtowrapfrom tofrommess agent messages = tofrommess, if messages = []
+                                                                                      = dtowrapfrom (tofrommess++[nmess]) agent restmess, if whoto = agent
+                                                                                      = dtowrapfrom tofrommess agent restmess, otherwise
+                                                                                        where
+                                                                                        nmess = hd messages
+                                                                                        restmess = tl messages
+                                                                                        whoto = hd (tl nmess)
+                                                 daddlist list a b c = list, if a=[] & c = [] & b = []
+                                                                     = daddlist ((hd a):list) (tl a) b c, if a~=[]
+                                                                     = daddlist ((hd b):list) a (tl b) c, if b~=[]
+                                                                     = daddlist ((hd c):list) a b (tl c), if c~=[]
+
+
+
+
+
+
+This is the new functionality of the program_harness, it takes in the output of each wrapper which is a inifite list in time of lists of output messages
+and returns a finite list containing an inifite list in time for each wrapper containing lists of the input messages 
+
+program_harness i_wrapper j_wrapper k_wrapper = _outputlist
+                                                where
+                                                _outputlist = [_createlisto 0 0, _createlisto 1 0, _createlisto 2 0]
+                                                              where
+                                                              _createlisto agent t = [_towrap agent i_wrapper!t j_wrapper!t k_wrapper!t] : _createlisto agent (t+1)
+                                                                                     where
+                                                                                     _towrap agent i_wrapper j_wrapper k_wrapper = _addlist [] (_towrapfrom [] agent i_wrapper) (_towrapfrom [] agent j_wrapper) (_towrapfrom [] agent k_wrapper)
+                                                                                     _towrapfrom tofrommess agent messages = tofrommess, if messages = []
+                                                                                                                           = _towrapfrom (tofrommess++[nmess]) agent restmess, if whoto = agent
+                                                                                                                           = _towrapfrom tofrommess agent restmess, otherwise
+                                                                                                                             where
+                                                                                                                             nmess = hd messages
+                                                                                                                             restmess = tl messages
+                                                                                                                             whoto = hd (tl nmess)
+                                                                                    _addlist list a b c = list, if a=[] & c = [] & b = []
+                                                                                                        = _addlist ((hd a):list) (tl a) b c, if a~=[]
+                                                                                                        = _addlist ((hd b):list) a (tl b) c, if b~=[]
+                                                                                                        = _addlist ((hd c):list) a b (tl c), if c~=[]
+
+
 
 >dmi a = a
 
@@ -2123,7 +2196,6 @@ so far it will only print the defination list
 >printexpr (Number n)         = (printnumber n)
 >printexpr (Where e dl)       = (printexpr e)++"\n    where\n"++(printdefs "" "    " dl)
 >printexpr (Mainfunc args)    = "this should not be printed yet (Mainfunc)"
->printexpr (Tuple a b c)      = "("++(printexpr a)++", "++(printexpr b)++", "++(printexpr c)++")"
 
 
 >printelist []     list = list

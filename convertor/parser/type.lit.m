@@ -1966,9 +1966,9 @@ na is the number of the agent in question
 cl is the list saying which agents want what functions from other agents
 
 >dmo_ccle::expression->num->[[[num]]]->expression
->dmo_ccle (Operation ls b c) na cl = Operation nls b c
->                                    where
->                                    nls = dmo_rnle na cl
+>dmo_ccle (Operation ols b c) na cl = Operation nls b c
+>                                     where
+>                                     nls = dmo_rnle na cl ols
 
 dmo_rnle (return new list expression), returns what the new list out put at a time step t should be
 This will be a list of tuples, each of the internal lists will be a message that is being passed.
@@ -1985,12 +1985,12 @@ therefore an output could be
 [f1] this is the list of values that j wants from i
 
 
->dmo_rnle na cl = nopl
->                 where
->                 nopl = List mesl
->                 mesl = dmo_lom ema na [] 0
->                 ema  = dmo_ema agms na [] 0    ||adds a empty list for this agent to the list
->                 agms = cl!na
+>dmo_rnle na cl ols = nopl
+>                     where
+>                     nopl = List mesl
+>                     mesl = dmo_lom ema na ols [] 0
+>                     ema  = dmo_ema agms na [] 0    ||adds a empty list for this agent to the list
+>                     agms = cl!na
 
 dmo_ema (empty message added), adds a empty list into the list of lists, in the place where this agent appears in the order, to make recurance easier in later functions
 
@@ -2004,34 +2004,30 @@ dmo_ema (empty message added), adds a empty list into the list of lists, in the 
 dmo_lom (list of messages)
 (from, to, value)
 
->dmo_lom::[[num]]->num->[expression]->num->[expression]
->dmo_lom []      na mesl san = mesl
->dmo_lom ([]:xs) na mesl san = dmo_lom xs na mesl (san+1)
->dmo_lom (x:xs)  na mesl san = dmo_lom xs na nmesl (san+1)
->                              where
->                              nmesl = [Tuple (Number na) (Number san) (value)]
->                              value = Operation func Bang (Varint "t")
->                              func  = Number 1    ||||||do this!!!!
+>dmo_lom::[[num]]->num->expression->[expression]->num->[expression]
+>dmo_lom []      na ols mesl san = mesl
+>dmo_lom ([]:xs) na ols mesl san = dmo_lom xs na ols mesl (san+1)
+>dmo_lom (x:xs)  na ols mesl san = dmo_lom xs na ols nmesl (san+1)
+>                                  where
+>                                  nmesl = mesl++mtta
+>                                  mtta  = dmo_mtta x [] ols san na
 
 
+dmo_mtta (messages to this agent), returns a list of tuple which are messages to the agent san
+
+dmo_mtta q w e san na = [Tuple (Number na) (Number san) (Number 1)]
+
+>dmo_mtta::[num]->[expression]->expression->num->num->[expression]
+>dmo_mtta []     ms ols san na = ms
+>dmo_mtta (x:xs) ms ols san na = dmo_mtta xs nms ols san na
+>                                where
+>                                nms   = ms ++ [Tuple (Number na) (Number san) (value)]
+>                                value = dmo_rcf ols x ||Number 1 ||ols!x
 
 
+dmo_rcf (return called function)
 
-||||||||||||||||||||||||||||||||||
-
-[Tuple (Number 1) (Number 1) (Number 1)]
-
-
->ttt (Program a b) = cl ||Program new_a b
->                    where
->                    cl    = dmo_ccl a
-
-
-
-
->tttt = ttt convo
-
-
+>dmo_rcf (List ls) x = ls!x
 
 
 

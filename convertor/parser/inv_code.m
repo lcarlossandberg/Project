@@ -32,7 +32,7 @@ j_f2 t = _fun t 3
     
     
     
-k_f1 t = t + (var_init runnumber)
+k_f1 t = t + (var_init runnumber) + (j_f2 t)
     
     
 }
